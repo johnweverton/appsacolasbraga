@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { FormNovaQuinzena } from '@/components/admin/FormNovaQuinzena'
 
 export default async function QuinzenaPage() {
   const supabase = createClient()
@@ -43,7 +44,7 @@ export default async function QuinzenaPage() {
           </form>
         </div>
       ) : (
-        <p className="text-gray-500 text-sm">Nenhuma quinzena aberta no momento.</p>
+        <FormNovaQuinzena />
       )}
 
       {(historico ?? []).length > 0 && (
