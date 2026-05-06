@@ -16,9 +16,14 @@ export default async function PagamentosPage() {
   const { data: payouts } = quinzena
     ? await supabase
         .from('payouts')
-        .select('*')
+        .select('*, users(nome)')
         .eq('quinzena_id', quinzena.id)
     : { data: [] }
+
+  const payoutsComNome = (payouts ?? []).map((p) => ({
+    ...(p as Payout),
+    nome_colaborador: (p as { users?: { nome: string } | null }).users?.nome ?? p.colaborador_id,
+  }))
 
   return (
     <div className="space-y-4">
@@ -26,7 +31,7 @@ export default async function PagamentosPage() {
       {quinzena && (
         <p className="text-sm text-gray-500">Quinzena encerrada em {quinzena.data_fim}</p>
       )}
-      <TabelaPagamentos payouts={(payouts ?? []) as Payout[]} />
+      <TabelaPagamentos payouts={payoutsComNome} />
     </div>
   )
 }

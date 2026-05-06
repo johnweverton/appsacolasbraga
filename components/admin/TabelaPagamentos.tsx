@@ -5,14 +5,18 @@ import type { Payout } from '@/types'
 import { Button } from '@/components/ui/button'
 import { formatarMoeda } from '@/lib/calculos'
 
+type PayoutComNome = Payout & { nome_colaborador: string }
+
 interface TabelaPagamentosProps {
-  payouts: Payout[]
+  payouts: PayoutComNome[]
 }
 
 export function TabelaPagamentos({ payouts: initialPayouts }: TabelaPagamentosProps) {
   const [payouts, setPayouts] = useState(initialPayouts)
+  const [updating, setUpdating] = useState<string | null>(null)
 
   async function marcarPago(id: string) {
+    setUpdating(id)
     const res = await fetch('/api/pagamentos', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -21,6 +25,7 @@ export function TabelaPagamentos({ payouts: initialPayouts }: TabelaPagamentosPr
     if (res.ok) {
       setPayouts((prev) => prev.map((p) => p.id === id ? { ...p, status: 'pago' as const } : p))
     }
+    setUpdating(null)
   }
 
   const totalGeral = payouts.reduce((sum, p) => sum + p.valor_total, 0)
@@ -39,14 +44,16 @@ export function TabelaPagamentos({ payouts: initialPayouts }: TabelaPagamentosPr
         <tbody>
           {payouts.map((payout) => (
             <tr key={payout.id} className="border-b border-gray-100 last:border-0">
-              <td className="px-4 py-3 font-medium text-gray-800">{payout.colaborador_id}</td>
+              <td className="px-4 py-3 font-medium text-gray-800">{payout.nome_colaborador}</td>
               <td className="px-4 py-3 text-right">{payout.total_unidades.toLocaleString('pt-BR')}</td>
               <td className="px-4 py-3 text-right font-medium">{formatarMoeda(payout.valor_total)}</td>
               <td className="px-4 py-3">
                 {payout.status === 'pago' ? (
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Pago</span>
                 ) : (
-                  <Button size="sm" onClick={() => marcarPago(payout.id)}>Marcar Pago</Button>
+                  <Button size="sm" disabled={updating === payout.id} onClick={() => marcarPago(payout.id)}>
+                    {updating === payout.id ? 'Salvando...' : 'Marcar Pago'}
+                  </Button>
                 )}
               </td>
             </tr>
