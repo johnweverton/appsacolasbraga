@@ -34,11 +34,15 @@ export async function middleware(request: NextRequest) {
 
   if (user) {
     const funcao = user.user_metadata?.funcao
-    if (request.nextUrl.pathname.startsWith('/admin') && funcao !== 'admin') {
-      return NextResponse.redirect(new URL('/colaborador', request.url))
-    }
-    if (request.nextUrl.pathname.startsWith('/colaborador') && funcao === 'admin') {
-      return NextResponse.redirect(new URL('/admin', request.url))
+    // Só redireciona quando a função está explicitamente definida no metadata.
+    // Caso contrário, o layout faz a verificação completa via banco de dados.
+    if (funcao !== undefined) {
+      if (request.nextUrl.pathname.startsWith('/admin') && funcao !== 'admin') {
+        return NextResponse.redirect(new URL('/colaborador', request.url))
+      }
+      if (request.nextUrl.pathname.startsWith('/colaborador') && funcao === 'admin') {
+        return NextResponse.redirect(new URL('/admin', request.url))
+      }
     }
   }
 

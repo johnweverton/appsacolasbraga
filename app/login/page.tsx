@@ -29,7 +29,17 @@ export default function LoginPage() {
       return
     }
 
-    const funcao = data.user?.user_metadata?.funcao
+    let funcao = data.user?.user_metadata?.funcao
+    if (!funcao && data.user) {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('funcao')
+        .eq('id', data.user.id)
+        .single()
+      funcao = profile?.funcao
+    }
+
+    router.refresh()
     router.push(funcao === 'admin' ? '/admin' : '/colaborador')
   }
 
