@@ -14,16 +14,21 @@ export function useProducaoColaborador(quinzenaId: string | undefined) {
 
     const supabase = createClient()
 
-    supabase
-      .from('production_entries')
-      .select('*')
-      .eq('quinzena_id', quinzenaId)
-      .order('data_producao', { ascending: false })
-      .then(({ data, error }) => {
-        if (error) setError(new Error('Erro ao buscar produções'))
-        else setEntries(data ?? [])
-        setLoading(false)
-      })
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { setLoading(false); return }
+
+      supabase
+        .from('production_entries')
+        .select('*')
+        .eq('quinzena_id', quinzenaId)
+        .eq('colaborador_id', user.id)
+        .order('data_producao', { ascending: false })
+        .then(({ data, error }) => {
+          if (error) setError(new Error('Erro ao buscar produções'))
+          else setEntries(data ?? [])
+          setLoading(false)
+        })
+    })
   }, [quinzenaId])
 
   return { entries, loading, error }
