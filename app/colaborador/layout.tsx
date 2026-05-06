@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { BotaoLogout } from '@/components/ui/BotaoLogout'
 
 export default async function ColaboradorLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
@@ -27,6 +28,7 @@ export default async function ColaboradorLayout({ children }: { children: React.
         <nav className="flex gap-4 text-sm">
           <Link href="/colaborador" className="text-gray-600 hover:text-gray-900">Início</Link>
           <Link href="/colaborador/historico" className="text-gray-600 hover:text-gray-900">Histórico</Link>
+          <BotaoLogout />
         </nav>
       </header>
       <main className="p-4 max-w-lg mx-auto">{children}</main>

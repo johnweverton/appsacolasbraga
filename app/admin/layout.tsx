@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { BotaoLogout } from '@/components/ui/BotaoLogout'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
@@ -30,6 +31,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin/quinzena" className="text-gray-600 hover:text-gray-900">Quinzena</Link>
           <Link href="/admin/pagamentos" className="text-gray-600 hover:text-gray-900">Pagamentos</Link>
           <Link href="/admin/configuracoes" className="text-gray-600 hover:text-gray-900">Config</Link>
+          <BotaoLogout />
         </nav>
       </header>
       <main className="p-6 max-w-6xl mx-auto">{children}</main>
