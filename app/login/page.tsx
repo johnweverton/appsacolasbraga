@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { Logo } from '@/components/ui/Logo'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -45,18 +46,11 @@ export default function LoginPage() {
     <main className="min-h-screen flex flex-col items-center justify-center bg-brand-cream px-6">
 
       {/* Logo */}
-      <div className="flex flex-col items-center gap-5 mb-10">
-        <div className="w-20 h-20 bg-brand-blue rounded-3xl flex items-center justify-center shadow-xl shadow-brand-blue/25">
-          <span className="font-display font-bold text-white text-3xl tracking-tight leading-none">SB</span>
-        </div>
-        <div className="text-center space-y-1">
-          <h1 className="font-display font-bold text-brand-dark text-2xl tracking-tight">
-            Sacolas Braga
-          </h1>
-          <p className="text-xs font-sans font-semibold uppercase tracking-widest text-brand-dark/35">
-            Sistema de Produção
-          </p>
-        </div>
+      <div className="flex flex-col items-center gap-4 mb-10">
+        <Logo size="xl" variant="full" />
+        <p className="text-xs font-sans font-semibold uppercase tracking-widest text-brand-dark/35">
+          Sistema de Produção
+        </p>
       </div>
 
       {/* Card */}
