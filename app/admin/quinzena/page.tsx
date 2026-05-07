@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { FormNovaQuinzena } from '@/components/admin/FormNovaQuinzena'
+import { BotaoFecharQuinzena } from '@/components/admin/BotaoFecharQuinzena'
 
 export default async function QuinzenaPage() {
   const supabase = createClient()
@@ -34,14 +35,7 @@ export default async function QuinzenaPage() {
             <p>Fim: <strong>{quinzenaAtiva.data_fim}</strong></p>
             <p>Pagamento: <strong>{quinzenaAtiva.data_pagamento}</strong></p>
           </div>
-          <form action="/api/quinzena/fechar" method="POST">
-            <button
-              type="submit"
-              className="mt-2 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors"
-            >
-              Fechar Quinzena
-            </button>
-          </form>
+          <BotaoFecharQuinzena />
         </div>
       ) : (
         <FormNovaQuinzena />
