@@ -33,7 +33,12 @@ export async function POST() {
       return NextResponse.json({ error: 'Nenhuma quinzena aberta' }, { status: 400 })
     }
 
-    const [{ data: entries }, { data: users }, { data: rates }] = await Promise.all([
+    const [{ count: divergencias }, { data: entries }, { data: users }, { data: rates }] = await Promise.all([
+      supabase
+        .from('production_entries')
+        .select('id', { count: 'exact', head: true })
+        .eq('quinzena_id', quinzena.id)
+        .eq('status', 'divergente'),
       supabase
         .from('production_entries')
         .select('colaborador_id, quantidade, status')
@@ -41,6 +46,13 @@ export async function POST() {
       supabase.from('users').select('id, funcao'),
       supabase.from('payment_rates').select('funcao, valor_unitario').is('vigencia_fim', null),
     ])
+
+    if (divergencias && divergencias > 0) {
+      return NextResponse.json(
+        { error: `Existem ${divergencias} lançamento(s) com divergência pendente. Resolva antes de fechar.` },
+        { status: 409 }
+      )
+    }
 
     const payouts = calcularPayouts(entries ?? [], rates ?? [], users ?? [])
 
