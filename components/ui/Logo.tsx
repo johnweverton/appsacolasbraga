@@ -3,15 +3,14 @@ import Image from 'next/image'
 interface LogoProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   variant?: 'mark' | 'full'
-  inverted?: boolean
 }
 
-// Height in px for each size — width auto-computed from 220:133 aspect ratio
-const HEIGHTS: Record<string, number> = { xs: 24, sm: 30, md: 38, lg: 56, xl: 90 }
+// Height in px — width auto-computed from 192:84 native aspect ratio
+const HEIGHTS: Record<string, number> = { xs: 28, sm: 36, md: 48, lg: 64, xl: 84 }
 
-export function Logo({ size = 'md', inverted = false }: LogoProps) {
+export function Logo({ size = 'md' }: LogoProps) {
   const h = HEIGHTS[size]
-  const w = Math.round((h * 220) / 133)
+  const w = Math.round((h * 192) / 84)
 
   return (
     <Image
@@ -20,7 +19,6 @@ export function Logo({ size = 'md', inverted = false }: LogoProps) {
       width={w}
       height={h}
       priority
-      style={{ mixBlendMode: inverted ? 'screen' : 'darken' }}
       className="shrink-0"
     />
   )
