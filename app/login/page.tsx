@@ -49,7 +49,7 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen w-full bg-brand-blue flex flex-col overflow-hidden">
 
-      {/* Logo centrado na parte superior */}
+      {/* Logo — anima ao montar (CSS, sem delay) */}
       <div className="flex-1 flex items-center justify-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -57,12 +57,13 @@ export default function LoginPage() {
           alt="Sacolas Braga"
           width={240}
           height={240}
+          className="animate-splash-logo"
           style={{ mixBlendMode: 'screen' }}
         />
       </div>
 
-      {/* Card de login — sempre visível, sem delay */}
-      <div className="bg-white rounded-t-4xl shadow-2xl">
+      {/* Card — sobe do fundo ao montar (CSS, sem delay) */}
+      <div className="bg-white rounded-t-4xl shadow-2xl animate-card-up">
         <form onSubmit={handleSubmit} className="px-6 pt-8 pb-10 space-y-5">
 
           {/* Email */}
