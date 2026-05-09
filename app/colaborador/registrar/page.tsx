@@ -18,12 +18,32 @@ export default function RegistrarProducao() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase
-      .from('users')
-      .select('id, nome')
-      .eq('ativo', true)
-      .neq('funcao', 'admin')
-      .then(({ data }) => setParceiros(data ?? []))
+
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return
+
+      const { data: profile } = await supabase
+        .from('users')
+        .select('funcao')
+        .eq('id', user.id)
+        .single()
+
+      if (!profile?.funcao) return
+
+      // Pintor trabalha com ajudante e vice-versa
+      const funcaoComplementar: string =
+        profile.funcao === 'pintor' ? 'ajudante' : 'pintor'
+
+      const { data } = await supabase
+        .from('users')
+        .select('id, nome')
+        .eq('ativo', true)
+        .eq('funcao', funcaoComplementar)
+        .neq('id', user.id)
+        .order('nome')
+
+      setParceiros(data ?? [])
+    })
   }, [])
 
   async function handleSubmit(data: {
