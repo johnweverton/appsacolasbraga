@@ -1,30 +1,74 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import Image from 'next/image'
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
+
+function playRevealSound() {
+  try {
+    type WA = typeof window & { webkitAudioContext?: typeof AudioContext }
+    const Ctx = window.AudioContext ?? (window as WA).webkitAudioContext
+    if (!Ctx) return
+    const ctx = new Ctx()
+
+    // Acorde maior ascendente C5-E5-G5 — efeito de revelação
+    const notes: [number, number][] = [[523.25, 0], [659.25, 0.13], [783.99, 0.26]]
+    notes.forEach(([freq, delay]) => {
+      const osc  = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.type = 'sine'
+      osc.frequency.value = freq
+      const t = ctx.currentTime + delay
+      gain.gain.setValueAtTime(0, t)
+      gain.gain.linearRampToValueAtTime(0.13, t + 0.04)
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55)
+      osc.start(t)
+      osc.stop(t + 0.6)
+    })
+  } catch { /* sem suporte → silêncio */ }
+}
 
 export default function LoginPage() {
   const router = useRouter()
+  const [logoIn,  setLogoIn]  = useState(false)
+  const [cardIn,  setCardIn]  = useState(false)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
+  const [error,   setError]   = useState('')
+  const [showPwd, setShowPwd] = useState(false)
+
+  useEffect(() => {
+    // Pula animação se o usuário já viu nesta sessão (ex: voltar ao login após erro)
+    if (sessionStorage.getItem('sb-splash')) {
+      setLogoIn(true)
+      setCardIn(true)
+      return
+    }
+
+    const t1 = setTimeout(() => { setLogoIn(true); playRevealSound() }, 200)
+    const t2 = setTimeout(() => {
+      setCardIn(true)
+      sessionStorage.setItem('sb-splash', '1')
+    }, 2300)
+
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
     setError('')
 
-    const form = e.currentTarget
-    const email = (form.elements.namedItem('email') as HTMLInputElement).value
+    const form     = e.currentTarget
+    const email    = (form.elements.namedItem('email')    as HTMLInputElement).value
     const password = (form.elements.namedItem('password') as HTMLInputElement).value
 
     const supabase = createClient()
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (error) {
+    if (authError) {
       setError('Email ou senha incorretos. Verifique seus dados.')
       setLoading(false)
       return
@@ -44,37 +88,42 @@ export default function LoginPage() {
     router.push(funcao === 'admin' ? '/admin' : '/colaborador')
   }
 
+  const inputBase =
+    'w-full min-w-0 rounded-2xl border border-black/10 bg-brand-cream/60 py-4 text-sm font-sans text-brand-dark placeholder-brand-dark/30 focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue/40 transition-all'
+
   return (
-    <main className="min-h-screen w-full bg-white flex flex-col px-6 pt-10 pb-10 overflow-x-hidden">
-      <div className="w-full max-w-sm mx-auto flex flex-col flex-1">
+    <main className="min-h-screen w-full bg-brand-blue flex flex-col overflow-hidden">
 
-        {/* Logo */}
-        <div className="mb-6">
-          <Image
-            src="/logo-sacolas-braga.png"
-            alt="Sacolas Braga"
-            width={140}
-            height={62}
-            priority
-          />
-        </div>
+      {/* ── Logo ── */}
+      <div className="flex-1 flex items-center justify-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo-mask.png"
+          alt="Sacolas Braga"
+          width={260}
+          height={260}
+          style={{
+            mixBlendMode: 'screen',
+            opacity:    logoIn ? 1 : 0,
+            transform:  logoIn ? 'scale(1)' : 'scale(0.6)',
+            transition: 'opacity 0.9s cubic-bezier(0.34,1.56,0.64,1), transform 0.9s cubic-bezier(0.34,1.56,0.64,1)',
+          }}
+        />
+      </div>
 
-        {/* Heading */}
-        <div className="mb-6">
-          <h1 className="font-display font-bold text-brand-dark text-[2rem] leading-tight mb-2">
-            Bem-vindo<br />de volta!
-          </h1>
-          <p className="text-sm font-sans text-brand-dark/45 leading-relaxed">
-            Insira suas credenciais para acessar o sistema de produção.
-          </p>
-        </div>
-
-        {/* Formulário */}
-        <form onSubmit={handleSubmit} className="space-y-4 flex-1">
+      {/* ── Card de login ── sobe do fundo */}
+      <div
+        style={{
+          transform:  cardIn ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 0.65s cubic-bezier(0.22,1,0.36,1)',
+        }}
+        className="bg-white rounded-t-4xl shadow-2xl"
+      >
+        <form onSubmit={handleSubmit} className="px-6 pt-8 pb-10 space-y-5">
 
           {/* Email */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-sans font-semibold text-brand-dark/50 uppercase tracking-wide">
+            <label className="block text-[10px] font-sans font-semibold uppercase tracking-[0.12em] text-brand-dark/40">
               Email
             </label>
             <div className="relative">
@@ -85,32 +134,32 @@ export default function LoginPage() {
                 placeholder="seu@email.com"
                 required
                 autoComplete="username"
-                className="w-full rounded-2xl border border-black/10 bg-white pl-11 pr-4 py-4 text-sm font-sans text-brand-dark placeholder-brand-dark/20 focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue/40 transition-all"
+                className={`${inputBase} pl-11 pr-4`}
               />
             </div>
           </div>
 
-          {/* Senha */}
+          {/* Senha / PIN */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-sans font-semibold text-brand-dark/50 uppercase tracking-wide">
+            <label className="block text-[10px] font-sans font-semibold uppercase tracking-[0.12em] text-brand-dark/40">
               Senha / PIN
             </label>
             <div className="relative">
               <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-dark/25 pointer-events-none" />
               <input
                 name="password"
-                type={showPassword ? 'text' : 'password'}
+                type={showPwd ? 'text' : 'password'}
                 placeholder="••••••••"
                 required
                 autoComplete="current-password"
-                className="w-full rounded-2xl border border-black/10 bg-white pl-11 pr-12 py-4 text-sm font-sans text-brand-dark placeholder-brand-dark/20 focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue/40 transition-all"
+                className={`${inputBase} pl-11 pr-12`}
               />
               <button
                 type="button"
-                onClick={() => setShowPassword((v) => !v)}
+                onClick={() => setShowPwd(v => !v)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-dark/30 hover:text-brand-dark/60 transition-colors"
               >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
@@ -123,19 +172,17 @@ export default function LoginPage() {
           )}
 
           {/* Botão */}
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-brand-blue text-white font-sans font-semibold rounded-2xl py-4 text-sm hover:bg-brand-blue/90 active:scale-[0.98] transition-all disabled:opacity-60 shadow-lg shadow-brand-blue/20"
-            >
-              {loading ? 'Entrando...' : 'Entrar'}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-brand-blue text-white font-sans font-semibold rounded-full py-4 text-sm hover:bg-brand-blue/90 active:scale-[0.98] transition-all disabled:opacity-60 shadow-lg shadow-brand-blue/20"
+          >
+            {loading ? 'Entrando...' : 'Entrar'}
+          </button>
 
         </form>
-
       </div>
+
     </main>
   )
 }

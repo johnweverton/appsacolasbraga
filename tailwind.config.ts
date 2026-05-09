@@ -31,9 +31,14 @@ const config: Config = {
           '55%':  { opacity: '1', transform: 'scale(1.06)' },
           '100%': { opacity: '1', transform: 'scale(1)' },
         },
+        'card-up': {
+          '0%':   { transform: 'translateY(100%)' },
+          '100%': { transform: 'translateY(0)' },
+        },
       },
       animation: {
         'splash-logo': 'splash-logo 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both',
+        'card-up': 'card-up 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards',
       },
     },
   },

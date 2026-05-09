@@ -39,7 +39,7 @@ function Field({ label, error, children }: { label: string; error?: string; chil
   )
 }
 
-const inputClass = 'w-full rounded-xl border border-black/[0.08] bg-brand-cream px-4 py-3 text-sm font-sans text-brand-dark placeholder-brand-dark/25 focus:outline-none focus:ring-2 focus:ring-brand-blue/25 focus:border-brand-blue/50 transition-all'
+const inputClass = 'w-full min-w-0 appearance-none rounded-xl border border-black/[0.08] bg-brand-cream px-4 py-3 text-sm font-sans text-brand-dark placeholder-brand-dark/25 focus:outline-none focus:ring-2 focus:ring-brand-blue/25 focus:border-brand-blue/50 transition-all'
 
 export function FormRegistro({ parceiros, onSubmit }: FormRegistroProps) {
   const today = new Date().toISOString().split('T')[0]
