@@ -22,7 +22,8 @@ export function calcularPayouts(
   rates: { funcao: string; valor_unitario: number }[],
   users: { id: string; funcao: string }[]
 ): PayoutCalculo[] {
-  const confirmados = entries.filter((e) => e.status === 'confirmado')
+  // Inclui pendente + confirmado; apenas divergente é excluído
+  const confirmados = entries.filter((e) => e.status !== 'divergente')
 
   const totais = new Map<string, number>()
   confirmados.forEach((e) => {

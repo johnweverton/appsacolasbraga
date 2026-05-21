@@ -33,7 +33,7 @@ export async function POST() {
       return NextResponse.json({ error: 'Nenhuma quinzena aberta' }, { status: 400 })
     }
 
-    const [{ count: divergencias }, { data: entries }, { data: users }, { data: rates }] = await Promise.all([
+    const [{ count: divergencias }, { data: entries }, { data: users }, { data: rates }, { data: payoutsExistentes }] = await Promise.all([
       supabase
         .from('production_entries')
         .select('id', { count: 'exact', head: true })
@@ -45,6 +45,7 @@ export async function POST() {
         .eq('quinzena_id', quinzena.id),
       supabase.from('users').select('id, funcao'),
       supabase.from('payment_rates').select('funcao, valor_unitario').is('vigencia_fim', null),
+      supabase.from('payouts').select('colaborador_id').eq('quinzena_id', quinzena.id),
     ])
 
     if (divergencias && divergencias > 0) {
@@ -54,7 +55,15 @@ export async function POST() {
       )
     }
 
-    const payouts = calcularPayouts(entries ?? [], rates ?? [], users ?? [])
+    // Exclui colaboradores que já foram fechados individualmente
+    const jaFechados = new Set((payoutsExistentes ?? []).map((p) => p.colaborador_id))
+    const entriesPendentes = (entries ?? []).filter((e) => !jaFechados.has(e.colaborador_id))
+
+    const payouts = calcularPayouts(entriesPendentes, rates ?? [], users ?? [])
+
+    if (payouts.length === 0 && jaFechados.size === 0) {
+      return NextResponse.json({ error: 'Nenhum lançamento válido para calcular.' }, { status: 400 })
+    }
 
     const { error: insertError } = await supabase
       .from('payouts')
