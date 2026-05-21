@@ -51,14 +51,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
     }
 
-    const { data, error } = await supabase
+    const { data: novaEntrada, error } = await supabase
       .from('production_entries')
       .insert({ ...parsed.data, colaborador_id: user.id, status: 'pendente' })
       .select()
       .single()
 
     if (error) throw error
-    return NextResponse.json(data, { status: 201 })
+
+    // Conferência automática: busca registro espelho do parceiro
+    const { data: espelho } = await supabase
+      .from('production_entries')
+      .select('id, quantidade')
+      .eq('quinzena_id', novaEntrada.quinzena_id)
+      .eq('colaborador_id', novaEntrada.parceiro_id)
+      .eq('parceiro_id', novaEntrada.colaborador_id)
+      .eq('data_producao', novaEntrada.data_producao)
+      .eq('marca', novaEntrada.marca)
+      .eq('tamanho', novaEntrada.tamanho)
+      .eq('status', 'pendente')
+      .maybeSingle()
+
+    if (espelho) {
+      const novoStatus = espelho.quantidade === novaEntrada.quantidade ? 'confirmado' : 'divergente'
+      await supabase
+        .from('production_entries')
+        .update({ status: novoStatus })
+        .in('id', [novaEntrada.id, espelho.id])
+      return NextResponse.json({ ...novaEntrada, status: novoStatus }, { status: 201 })
+    }
+
+    return NextResponse.json(novaEntrada, { status: 201 })
   } catch {
     return NextResponse.json({ error: 'Erro ao registrar produção' }, { status: 500 })
   }

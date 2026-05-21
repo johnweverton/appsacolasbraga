@@ -7,7 +7,7 @@ import { Toast } from '@/components/ui/Toast'
 import { useToast } from '@/hooks/useToast'
 import { useRealtimeLancamentos } from '@/hooks/useRealtimeLancamentos'
 
-type EntryComNome = ProductionEntry & { nome_colaborador?: string }
+type EntryComNome = ProductionEntry & { nome_colaborador?: string; nome_parceiro?: string }
 
 interface TabelaLancamentosProps {
   entries: EntryComNome[]
@@ -79,7 +79,7 @@ export function TabelaLancamentos({
 
   if (loading) return <p className="text-gray-500 text-sm">Carregando lançamentos...</p>
 
-  const colSpan = (mostrarColaborador ? 1 : 0) + (readOnly ? 5 : 6)
+  const colSpan = (mostrarColaborador ? 2 : 0) + (readOnly ? 5 : 6)
 
   return (
     <>
@@ -106,6 +106,7 @@ export function TabelaLancamentos({
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50 text-left text-gray-500">
               {mostrarColaborador && <th className="px-4 py-3">Colaborador</th>}
+              {mostrarColaborador && <th className="px-4 py-3">Parceiro</th>}
               <th className="px-4 py-3">Data</th>
               <th className="px-4 py-3">Marca</th>
               <th className="px-4 py-3">Tamanho</th>
@@ -122,6 +123,9 @@ export function TabelaLancamentos({
                 <tr key={entry.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                   {mostrarColaborador && (
                     <td className="px-4 py-3 font-medium text-gray-700">{entry.nome_colaborador ?? '—'}</td>
+                  )}
+                  {mostrarColaborador && (
+                    <td className="px-4 py-3 text-gray-500">{entry.nome_parceiro ?? '—'}</td>
                   )}
                   <td className="px-4 py-3">{formatDate(entry.data_producao)}</td>
                   <td className="px-4 py-3">{entry.marca}</td>

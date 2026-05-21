@@ -32,7 +32,7 @@ export default async function LancamentosPage() {
   ] = await Promise.all([
     supabase
       .from('production_entries')
-      .select('*, users!colaborador_id(nome)')
+      .select('*, users!colaborador_id(nome), parceiro:users!parceiro_id(nome)')
       .eq('quinzena_id', quinzena.id)
       .order('created_at', { ascending: false }),
     supabase.from('users').select('id, nome, funcao').neq('funcao', 'admin'),
@@ -43,6 +43,7 @@ export default async function LancamentosPage() {
   const entriesComNome = (entries ?? []).map((e) => ({
     ...(e as ProductionEntry),
     nome_colaborador: (e as { users?: { nome: string } | null }).users?.nome ?? e.colaborador_id,
+    nome_parceiro: (e as { parceiro?: { nome: string } | null }).parceiro?.nome ?? '—',
   }))
 
   // Monta resumo por colaborador
