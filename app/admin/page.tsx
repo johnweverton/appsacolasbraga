@@ -21,8 +21,9 @@ export default async function AdminDashboard() {
     : { data: [] }
 
   const allEntries = (entries ?? []) as ProductionEntry[]
+  // Conta pendente + confirmado (só divergente não conta)
   const totalUnidades = allEntries
-    .filter((e) => e.status === 'confirmado')
+    .filter((e) => e.status !== 'divergente')
     .reduce((sum, e) => sum + e.quantidade, 0)
   const divergencias = allEntries.filter((e) => e.status === 'divergente')
 
@@ -41,7 +42,7 @@ export default async function AdminDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard
-          title="Unidades Confirmadas"
+          title="Unidades Registradas"
           value={totalUnidades.toLocaleString('pt-BR')}
           description="na quinzena atual"
         />
