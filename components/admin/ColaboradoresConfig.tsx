@@ -4,10 +4,10 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { UserPlus, X } from 'lucide-react'
+import { UserPlus, X, Pencil } from 'lucide-react'
 import type { User } from '@/types'
 
-const schema = z.object({
+const createSchema = z.object({
   nome: z.string().min(2, 'Mínimo 2 caracteres'),
   email: z.string().email('Email inválido'),
   senha: z.string().min(6, 'Mínimo 6 caracteres'),
@@ -15,7 +15,18 @@ const schema = z.object({
   pix_key: z.string().optional(),
 })
 
-type FormData = z.infer<typeof schema>
+const editSchema = z.object({
+  nome: z.string().min(2, 'Mínimo 2 caracteres'),
+  funcao: z.enum(['pintor', 'ajudante'], { required_error: 'Selecione a função' }),
+  pix_key: z.string().optional(),
+  nova_senha: z.string().optional(),
+}).refine(
+  (data) => !data.nova_senha || data.nova_senha.length >= 6,
+  { message: 'Mínimo 6 caracteres', path: ['nova_senha'] }
+)
+
+type CreateData = z.infer<typeof createSchema>
+type EditData = z.infer<typeof editSchema>
 type ColaboradorListado = Pick<User, 'id' | 'nome' | 'funcao' | 'ativo'> & { pix_key?: string | null }
 
 interface ColaboradoresConfigProps {
@@ -43,11 +54,20 @@ export function ColaboradoresConfig({ colaboradoresIniciais }: ColaboradoresConf
   const [showForm, setShowForm] = useState(false)
   const [serverError, setServerError] = useState('')
   const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [editando, setEditando] = useState<ColaboradorListado | null>(null)
+  const [editError, setEditError] = useState('')
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } =
-    useForm<FormData>({ resolver: zodResolver(schema) })
+    useForm<CreateData>({ resolver: zodResolver(createSchema) })
 
-  async function handleCreate(data: FormData) {
+  const {
+    register: registerEdit,
+    handleSubmit: handleSubmitEdit,
+    formState: { errors: editErrors, isSubmitting: isEditSubmitting },
+    reset: resetEdit,
+  } = useForm<EditData>({ resolver: zodResolver(editSchema) })
+
+  async function handleCreate(data: CreateData) {
     setServerError('')
     const res = await fetch('/api/colaboradores', {
       method: 'POST',
@@ -82,6 +102,61 @@ export function ColaboradoresConfig({ colaboradoresIniciais }: ColaboradoresConf
     setTogglingId(null)
   }
 
+  function abrirEdicao(c: ColaboradorListado) {
+    setEditando(c)
+    setEditError('')
+    resetEdit({
+      nome: c.nome,
+      funcao: c.funcao as 'pintor' | 'ajudante',
+      pix_key: c.pix_key ?? '',
+      nova_senha: '',
+    })
+  }
+
+  async function handleEdit(data: EditData) {
+    if (!editando) return
+    setEditError('')
+
+    const patchRes = await fetch(`/api/colaboradores/${editando.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nome: data.nome,
+        funcao: data.funcao,
+        pix_key: data.pix_key || null,
+      }),
+    })
+
+    if (!patchRes.ok) {
+      const json = await patchRes.json()
+      setEditError(typeof json.error === 'string' ? json.error : 'Erro ao atualizar colaborador')
+      return
+    }
+
+    if (data.nova_senha) {
+      const senhaRes = await fetch(`/api/colaboradores/${editando.id}/reset-senha`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senha: data.nova_senha }),
+      })
+      if (!senhaRes.ok) {
+        setEditError('Dados atualizados, mas erro ao redefinir senha.')
+        return
+      }
+    }
+
+    setColaboradores((prev) =>
+      prev
+        .map((c) =>
+          c.id === editando.id
+            ? { ...c, nome: data.nome, funcao: data.funcao, pix_key: data.pix_key || null }
+            : c
+        )
+        .sort((a, b) => a.nome.localeCompare(b.nome))
+    )
+    setEditando(null)
+  }
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -105,7 +180,7 @@ export function ColaboradoresConfig({ colaboradoresIniciais }: ColaboradoresConf
         </button>
       </div>
 
-      {/* Formulário */}
+      {/* Formulário de criação */}
       {showForm && (
         <div className="rounded-2xl border border-brand-blue/15 bg-brand-blue/[0.03] p-5 space-y-4">
           <p className="text-xs font-sans font-semibold uppercase tracking-widest text-brand-blue/60">
@@ -192,17 +267,26 @@ export function ColaboradoresConfig({ colaboradoresIniciais }: ColaboradoresConf
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => toggleAtivo(c.id, c.ativo)}
-                      disabled={togglingId === c.id}
-                      className={`text-xs font-sans font-semibold transition-colors disabled:opacity-40 ${
-                        c.ativo
-                          ? 'text-brand-dark/30 hover:text-red-500'
-                          : 'text-brand-blue hover:text-brand-blue/70'
-                      }`}
-                    >
-                      {c.ativo ? 'Desativar' : 'Ativar'}
-                    </button>
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        onClick={() => abrirEdicao(c)}
+                        className="text-xs font-sans font-semibold text-brand-blue hover:text-brand-blue/70 transition-colors flex items-center gap-1"
+                      >
+                        <Pencil size={11} />
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => toggleAtivo(c.id, c.ativo)}
+                        disabled={togglingId === c.id}
+                        className={`text-xs font-sans font-semibold transition-colors disabled:opacity-40 ${
+                          c.ativo
+                            ? 'text-brand-dark/30 hover:text-red-500'
+                            : 'text-brand-blue hover:text-brand-blue/70'
+                        }`}
+                      >
+                        {c.ativo ? 'Desativar' : 'Ativar'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -210,6 +294,84 @@ export function ColaboradoresConfig({ colaboradoresIniciais }: ColaboradoresConf
           </table>
         )}
       </div>
+
+      {/* Modal de edição */}
+      {editando && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setEditando(null) }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-display font-bold text-brand-dark text-base">Editar colaborador</h3>
+                <p className="text-xs font-sans text-brand-dark/40 mt-0.5">{editando.nome}</p>
+              </div>
+              <button
+                onClick={() => setEditando(null)}
+                className="p-1.5 rounded-lg hover:bg-black/5 text-brand-dark/40 hover:text-brand-dark transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitEdit(handleEdit)} className="space-y-4">
+              <Field label="Nome completo" error={editErrors.nome?.message}>
+                <input {...registerEdit('nome')} className={inputClass} />
+              </Field>
+
+              <Field label="Função" error={editErrors.funcao?.message}>
+                <select {...registerEdit('funcao')} className={inputClass}>
+                  <option value="pintor">Pintor</option>
+                  <option value="ajudante">Ajudante</option>
+                </select>
+              </Field>
+
+              <Field label="Chave PIX" error={undefined}>
+                <input
+                  placeholder="CPF, email ou telefone"
+                  {...registerEdit('pix_key')}
+                  className={inputClass}
+                />
+              </Field>
+
+              <div className="border-t border-black/[0.06] pt-4">
+                <Field label="Nova senha (deixe em branco para não alterar)" error={editErrors.nova_senha?.message}>
+                  <input
+                    type="password"
+                    placeholder="Mínimo 6 caracteres"
+                    {...registerEdit('nova_senha')}
+                    className={inputClass}
+                  />
+                </Field>
+              </div>
+
+              {editError && (
+                <p className="text-sm font-sans text-red-600 bg-red-50 rounded-xl px-4 py-3 border border-red-100">
+                  {editError}
+                </p>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setEditando(null)}
+                  className="flex-1 rounded-xl border border-black/[0.08] bg-brand-cream px-4 py-2.5 text-sm font-sans font-semibold text-brand-dark/60 hover:bg-black/5 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isEditSubmitting}
+                  className="flex-1 bg-brand-blue text-white font-sans font-semibold rounded-xl px-4 py-2.5 text-sm hover:bg-brand-blue/90 active:scale-[0.98] transition-all disabled:opacity-60"
+                >
+                  {isEditSubmitting ? 'Salvando...' : 'Salvar alterações'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

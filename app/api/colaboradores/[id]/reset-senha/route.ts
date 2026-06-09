@@ -3,11 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { z } from 'zod'
 
-const updateSchema = z.object({
-  nome: z.string().min(2).optional(),
-  funcao: z.enum(['pintor', 'ajudante']).optional(),
-  pix_key: z.string().nullable().optional(),
-  ativo: z.boolean().optional(),
+const schema = z.object({
+  senha: z.string().min(6, 'Mínimo 6 caracteres'),
 })
 
 async function assertAdmin() {
@@ -28,34 +25,25 @@ async function assertAdmin() {
   return funcao === 'admin' ? user : null
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const admin = await assertAdmin()
     if (!admin) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
 
     const body = await request.json()
-    const parsed = updateSchema.safeParse(body)
+    const parsed = schema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
     }
 
     const adminClient = createAdminClient()
-    const updates: Record<string, unknown> = {}
-    if (parsed.data.nome !== undefined) updates.nome = parsed.data.nome
-    if (parsed.data.funcao !== undefined) updates.funcao = parsed.data.funcao
-    if (parsed.data.pix_key !== undefined) updates.pix_key = parsed.data.pix_key
-    if (parsed.data.ativo !== undefined) updates.ativo = parsed.data.ativo
-
-    const { data, error } = await adminClient
-      .from('users')
-      .update(updates)
-      .eq('id', params.id)
-      .select()
-      .single()
+    const { error } = await adminClient.auth.admin.updateUserById(params.id, {
+      password: parsed.data.senha,
+    })
 
     if (error) throw error
-    return NextResponse.json(data)
+    return NextResponse.json({ ok: true })
   } catch {
-    return NextResponse.json({ error: 'Erro ao atualizar colaborador' }, { status: 500 })
+    return NextResponse.json({ error: 'Erro ao redefinir senha' }, { status: 500 })
   }
 }
