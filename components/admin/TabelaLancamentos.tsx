@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import { Trash2 } from 'lucide-react'
 import type { ProductionEntry } from '@/types'
 import { formatDate } from '@/lib/format'
 import { Toast } from '@/components/ui/Toast'
@@ -32,6 +33,8 @@ export function TabelaLancamentos({
 }: TabelaLancamentosProps) {
   const [entries, setEntries] = useState(initialEntries)
   const [updating, setUpdating] = useState<string | null>(null)
+  const [confirmandoDelete, setConfirmandoDelete] = useState<string | null>(null)
+  const [deletando, setDeletando] = useState<string | null>(null)
   const [filtroColaborador, setFiltroColaborador] = useState('')
   const { toast, showToast, hideToast } = useToast()
 
@@ -57,6 +60,25 @@ export function TabelaLancamentos({
     if (!filtroColaborador) return entries
     return entries.filter((e) => e.nome_colaborador === filtroColaborador)
   }, [entries, filtroColaborador])
+
+  async function deleteEntry(id: string) {
+    setDeletando(id)
+    try {
+      const res = await fetch(`/api/producao/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const json = await res.json()
+        showToast(typeof json.error === 'string' ? json.error : 'Erro ao excluir.', 'error')
+        return
+      }
+      setEntries((prev) => prev.filter((e) => e.id !== id))
+      showToast('Lançamento excluído.', 'success')
+    } catch {
+      showToast('Erro ao excluir lançamento.', 'error')
+    } finally {
+      setDeletando(null)
+      setConfirmandoDelete(null)
+    }
+  }
 
   async function updateStatus(id: string, status: 'confirmado' | 'divergente' | 'pendente') {
     setUpdating(id)
@@ -138,33 +160,61 @@ export function TabelaLancamentos({
                   </td>
                   {!readOnly && (
                     <td className="px-4 py-3">
-                      {entry.status !== 'confirmado' && (
-                        <button
-                          onClick={() => updateStatus(entry.id, 'confirmado')}
-                          disabled={isUpdating}
-                          className="mr-2 text-xs px-2 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50"
-                        >
-                          Confirmar
-                        </button>
-                      )}
-                      {entry.status !== 'divergente' && (
-                        <button
-                          onClick={() => updateStatus(entry.id, 'divergente')}
-                          disabled={isUpdating}
-                          className="text-xs px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50"
-                        >
-                          Divergência
-                        </button>
-                      )}
-                      {entry.status !== 'pendente' && (
-                        <button
-                          onClick={() => updateStatus(entry.id, 'pendente')}
-                          disabled={isUpdating}
-                          className="ml-2 text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-700 hover:bg-yellow-200 disabled:opacity-50"
-                        >
-                          Reverter
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {entry.status !== 'confirmado' && (
+                          <button
+                            onClick={() => updateStatus(entry.id, 'confirmado')}
+                            disabled={isUpdating}
+                            className="text-xs px-2 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50"
+                          >
+                            Confirmar
+                          </button>
+                        )}
+                        {entry.status !== 'divergente' && (
+                          <button
+                            onClick={() => updateStatus(entry.id, 'divergente')}
+                            disabled={isUpdating}
+                            className="text-xs px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50"
+                          >
+                            Divergência
+                          </button>
+                        )}
+                        {entry.status !== 'pendente' && (
+                          <button
+                            onClick={() => updateStatus(entry.id, 'pendente')}
+                            disabled={isUpdating}
+                            className="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-700 hover:bg-yellow-200 disabled:opacity-50"
+                          >
+                            Reverter
+                          </button>
+                        )}
+                        {confirmandoDelete === entry.id ? (
+                          <>
+                            <button
+                              onClick={() => setConfirmandoDelete(null)}
+                              className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-500 hover:bg-gray-200"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              onClick={() => deleteEntry(entry.id)}
+                              disabled={deletando === entry.id}
+                              className="text-xs px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                            >
+                              {deletando === entry.id ? '...' : 'Confirmar'}
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmandoDelete(entry.id)}
+                            disabled={isUpdating}
+                            title="Excluir lançamento"
+                            className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   )}
                 </tr>
