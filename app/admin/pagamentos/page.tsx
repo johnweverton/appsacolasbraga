@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
 import { TabelaPagamentos } from '@/components/admin/TabelaPagamentos'
 import { BotaoExportarCSV } from '@/components/admin/BotaoExportarCSV'
