@@ -6,6 +6,7 @@ import type { EntryComParceiro } from '@/hooks/useProducaoColaborador'
 
 interface ModalEditarLancamentoProps {
   entry: EntryComParceiro
+  parceiros: { id: string; nome: string }[]
   onClose: () => void
   onSaved: (updated: EntryComParceiro) => void
   onDeleted: (id: string) => void
@@ -14,19 +15,27 @@ interface ModalEditarLancamentoProps {
 const inputClass =
   'w-full rounded-xl border border-black/[0.08] bg-brand-cream px-4 py-3 text-sm font-sans text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/25 focus:border-brand-blue/50 transition-all'
 
-export function ModalEditarLancamento({ entry, onClose, onSaved, onDeleted }: ModalEditarLancamentoProps) {
+export function ModalEditarLancamento({ entry, parceiros, onClose, onSaved, onDeleted }: ModalEditarLancamentoProps) {
   const [form, setForm] = useState({
     data_producao: entry.data_producao,
     funcao: (entry.funcao ?? 'pintor') as 'pintor' | 'ajudante',
+    parceiro_id: entry.parceiro_id,
     marca: entry.marca,
     tamanho: entry.tamanho,
     cores: entry.cores,
     quantidade: entry.quantidade,
   })
+
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [erro, setErro] = useState('')
+
+  // Garante que o parceiro atual do lançamento apareça nas opções,
+  // mesmo que tenha sido desativado depois do registro.
+  const opcoesParceiros = parceiros.some((p) => p.id === entry.parceiro_id)
+    ? parceiros
+    : [{ id: entry.parceiro_id, nome: entry.nome_parceiro ?? '—' }, ...parceiros]
 
   function set(field: string, value: string | number) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -92,12 +101,23 @@ export function ModalEditarLancamento({ entry, onClose, onSaved, onDeleted }: Mo
           </button>
         </div>
 
-        <p className="text-xs font-sans text-brand-dark/40">
-          Parceiro: <span className="font-semibold text-brand-dark/60">{entry.nome_parceiro ?? '—'}</span>
-        </p>
-
         {/* Campos */}
         <div className="space-y-3">
+          <div>
+            <label className="block text-[10px] font-sans font-semibold uppercase tracking-widest text-brand-dark/40 mb-1">
+              Parceiro
+            </label>
+            <select
+              value={form.parceiro_id}
+              onChange={(e) => set('parceiro_id', e.target.value)}
+              className={inputClass}
+            >
+              {opcoesParceiros.map((p) => (
+                <option key={p.id} value={p.id}>{p.nome}</option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="block text-[10px] font-sans font-semibold uppercase tracking-widest text-brand-dark/40 mb-1">
               Data

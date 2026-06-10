@@ -17,6 +17,7 @@ const patchColaboradorSchema = z.object({
   cores: z.number().int().min(1),
   data_producao: z.string().min(1),
   funcao: z.enum(['pintor', 'ajudante']),
+  parceiro_id: z.string().uuid(),
 })
 
 export async function DELETE(
@@ -165,12 +166,12 @@ export async function PATCH(
 
     if (updateError) throw updateError
 
-    // Re-executa conferência automática com os novos dados
+    // Re-executa conferência automática com os novos dados (considera o parceiro atualizado)
     const { data: espelho } = await supabase
       .from('production_entries')
       .select('id, quantidade')
       .eq('quinzena_id', entry.quinzena_id)
-      .eq('colaborador_id', entry.parceiro_id)
+      .eq('colaborador_id', updated.parceiro_id)
       .eq('parceiro_id', entry.colaborador_id)
       .eq('data_producao', updated.data_producao)
       .eq('marca', updated.marca)

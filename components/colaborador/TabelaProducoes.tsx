@@ -12,6 +12,7 @@ interface TabelaProducoesProps {
   loading: boolean
   totalUnidades: number
   valorEstimado: number
+  parceiros: { id: string; nome: string }[]
 }
 
 const TURNO_LABEL: Record<string, string> = {
@@ -31,7 +32,7 @@ const STATUS_LABEL: Record<string, string> = {
   divergente: 'Div.',
 }
 
-export function TabelaProducoes({ entries: initialEntries, loading, totalUnidades, valorEstimado }: TabelaProducoesProps) {
+export function TabelaProducoes({ entries: initialEntries, loading, totalUnidades, valorEstimado, parceiros }: TabelaProducoesProps) {
   const [entries, setEntries] = useState(initialEntries)
   const [editando, setEditando] = useState<EntryComParceiro | null>(null)
 
@@ -76,6 +77,7 @@ export function TabelaProducoes({ entries: initialEntries, loading, totalUnidade
       {editando && (
         <ModalEditarLancamento
           entry={editando}
+          parceiros={parceiros}
           onClose={() => setEditando(null)}
           onSaved={handleSaved}
           onDeleted={handleDeleted}

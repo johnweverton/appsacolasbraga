@@ -5,15 +5,15 @@ import { FormRegistro } from '@/components/colaborador/FormRegistro'
 import { BannerMetricas } from '@/components/colaborador/BannerMetricas'
 import { useQuinzenaAtiva } from '@/hooks/useQuinzenaAtiva'
 import { useMetricasQuinzena } from '@/hooks/useMetricasQuinzena'
+import { useParceiros } from '@/hooks/useParceiros'
 import { Toast } from '@/components/ui/Toast'
 import { useToast } from '@/hooks/useToast'
 import { useState, useEffect } from 'react'
-import type { User } from '@/types'
 
 export default function RegistrarProducao() {
   const { quinzena } = useQuinzenaAtiva()
   const metricas = useMetricasQuinzena(quinzena?.id)
-  const [parceiros, setParceiros] = useState<Pick<User, 'id' | 'nome'>[]>([])
+  const parceiros = useParceiros()
   const [defaultFuncao, setDefaultFuncao] = useState<'pintor' | 'ajudante'>('pintor')
   const { toast, showToast, hideToast } = useToast()
 
@@ -32,17 +32,6 @@ export default function RegistrarProducao() {
       if (profile?.funcao === 'pintor' || profile?.funcao === 'ajudante') {
         setDefaultFuncao(profile.funcao)
       }
-
-      // Lista todos os colaboradores ativos (exceto o próprio)
-      const { data } = await supabase
-        .from('users')
-        .select('id, nome')
-        .eq('ativo', true)
-        .neq('id', user.id)
-        .in('funcao', ['pintor', 'ajudante'])
-        .order('nome')
-
-      setParceiros(data ?? [])
     })
   }, [])
 

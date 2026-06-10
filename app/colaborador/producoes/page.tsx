@@ -5,6 +5,7 @@ import { useQuinzenaAtiva } from '@/hooks/useQuinzenaAtiva'
 import { useProducaoColaborador } from '@/hooks/useProducaoColaborador'
 import { useMetricasQuinzena } from '@/hooks/useMetricasQuinzena'
 import { useRealtimeLancamentos } from '@/hooks/useRealtimeLancamentos'
+import { useParceiros } from '@/hooks/useParceiros'
 import { BannerMetricas } from '@/components/colaborador/BannerMetricas'
 import { TabelaProducoes } from '@/components/colaborador/TabelaProducoes'
 import type { ProductionEntry } from '@/types'
@@ -13,6 +14,7 @@ export default function ProducoesPage() {
   const { quinzena } = useQuinzenaAtiva()
   const { entries, loading, error } = useProducaoColaborador(quinzena?.id)
   const metricas = useMetricasQuinzena(quinzena?.id)
+  const parceiros = useParceiros()
 
   const handleRealtime = useCallback((_entry: ProductionEntry) => {
     metricas.refresh()
@@ -35,6 +37,7 @@ export default function ProducoesPage() {
             loading={loading}
             totalUnidades={metricas.totalUnidades}
             valorEstimado={metricas.valorEstimado}
+            parceiros={parceiros}
           />
         )}
       </div>
