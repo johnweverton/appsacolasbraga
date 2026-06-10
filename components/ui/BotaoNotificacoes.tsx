@@ -60,7 +60,29 @@ export function BotaoNotificacoes() {
 
   async function subscribe() {
     try {
-      const reg = await navigator.serviceWorker.ready
+      // Pede permissão explicitamente — abre o dialog nativo no iOS
+      const permission = await Notification.requestPermission()
+
+      if (permission !== 'granted') {
+        setStatus('denied')
+        setModal(null)
+        return
+      }
+
+      if (!('PushManager' in window)) {
+        setStatus('subscribed')
+        setModal(null)
+        return
+      }
+
+      // Aguarda SW ficar pronto com timeout de 5s
+      const reg = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('sw-timeout')), 5000)
+        ),
+      ])
+
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!),
