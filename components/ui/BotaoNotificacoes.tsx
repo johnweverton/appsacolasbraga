@@ -29,6 +29,13 @@ export function BotaoNotificacoes() {
     ).catch(() => setStatus('unsubscribed'))
   }, [])
 
+  // Auto-solicita permissão na primeira visita (só se ainda não foi perguntado)
+  useEffect(() => {
+    if (status === 'unsubscribed' && Notification.permission === 'default') {
+      subscribe()
+    }
+  }, [status])
+
   async function toggleSubscription() {
     if (status === 'subscribed') {
       await unsubscribe()
