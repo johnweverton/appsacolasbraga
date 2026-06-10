@@ -22,7 +22,7 @@ export default async function AuditoriaPage() {
     .order('created_at', { ascending: false })
     .limit(200)
 
-  const userIds = [...new Set((logs ?? []).map((l) => l.usuario_id).filter(Boolean))]
+  const userIds = Array.from(new Set((logs ?? []).map((l) => l.usuario_id).filter(Boolean)))
   let nomesMap = new Map<string, string>()
   if (userIds.length > 0) {
     const { data: users } = await supabase
