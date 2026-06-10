@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { assertAdmin } from '@/lib/admin-auth'
+import { logAudit } from '@/lib/audit'
 import { z } from 'zod'
 
 const patchAdminSchema = z.object({
@@ -75,6 +76,14 @@ export async function DELETE(
       .eq('id', params.id)
 
     if (error) throw error
+
+    await logAudit('excluiu_lancamento', {
+      usuarioId: user.id,
+      tabela: 'production_entries',
+      registroId: params.id,
+      payload: { por: adminUser ? 'admin' : 'colaborador' },
+    })
+
     return NextResponse.json({ success: true })
   } catch {
     return NextResponse.json({ error: 'Erro ao excluir lançamento' }, { status: 500 })
@@ -105,6 +114,14 @@ export async function PATCH(
         .single()
 
       if (error) throw error
+
+      await logAudit('editou_lancamento', {
+        usuarioId: user.id,
+        tabela: 'production_entries',
+        registroId: params.id,
+        payload: { novo_status: parsed.data.status },
+      })
+
       return NextResponse.json(data)
     }
 

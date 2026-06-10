@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, ClipboardList, CalendarDays, Banknote, Settings } from 'lucide-react'
+import { LayoutDashboard, ClipboardList, CalendarDays, Banknote, BarChart2, Settings } from 'lucide-react'
 
 const LINKS = [
   { href: '/admin',               label: 'Dashboard',   icon: LayoutDashboard, exact: true },
   { href: '/admin/lancamentos',   label: 'Lançamentos', icon: ClipboardList,   exact: false },
   { href: '/admin/quinzena',      label: 'Quinzena',    icon: CalendarDays,    exact: false },
   { href: '/admin/pagamentos',    label: 'Pagamentos',  icon: Banknote,        exact: false },
+  { href: '/admin/relatorios',    label: 'Relatórios',  icon: BarChart2,       exact: false },
   { href: '/admin/configuracoes', label: 'Config',      icon: Settings,        exact: false },
 ]
 
@@ -24,14 +25,14 @@ export function NavAdminBottom() {
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center gap-1 flex-1 py-1 rounded-2xl transition-all ${
+              className={`flex flex-col items-center gap-0.5 flex-1 py-1 rounded-xl transition-all ${
                 ativo ? 'text-brand-blue' : 'text-brand-dark/35 hover:text-brand-dark/60'
               }`}
             >
-              <div className={`p-2 rounded-2xl transition-all ${ativo ? 'bg-brand-blue/10' : ''}`}>
-                <Icon size={19} strokeWidth={ativo ? 2.5 : 1.75} />
+              <div className={`p-1.5 rounded-xl transition-all ${ativo ? 'bg-brand-blue/10' : ''}`}>
+                <Icon size={17} strokeWidth={ativo ? 2.5 : 1.75} />
               </div>
-              <span className={`text-[9px] font-sans font-semibold tracking-wide ${
+              <span className={`text-[8px] font-sans font-semibold tracking-wide ${
                 ativo ? 'text-brand-blue' : 'text-brand-dark/35'
               }`}>
                 {label}

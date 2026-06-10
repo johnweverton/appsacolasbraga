@@ -1,24 +1,14 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { assertAdmin } from '@/lib/admin-auth'
 import { calcularPayouts } from '@/lib/calculos'
+import { logAudit } from '@/lib/audit'
 import { z } from 'zod'
 
 const schema = z.object({
   quinzena_id: z.string().uuid(),
   colaborador_id: z.string().uuid(),
 })
-
-async function assertAdmin() {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  let funcao = user.user_metadata?.funcao
-  if (!funcao) {
-    const { data: profile } = await supabase.from('users').select('funcao').eq('id', user.id).single()
-    funcao = profile?.funcao
-  }
-  return funcao === 'admin' ? user : null
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -91,6 +81,13 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (insertError) throw insertError
+
+    await logAudit('fechou_colaborador', {
+      usuarioId: admin.id,
+      tabela: 'payouts',
+      registroId: payout?.id,
+      payload: { quinzena_id, colaborador_id, valor_total: payouts[0]?.valor_total },
+    })
 
     return NextResponse.json({ success: true, payout }, { status: 201 })
   } catch {

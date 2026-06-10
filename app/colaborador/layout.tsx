@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Logo } from '@/components/ui/Logo'
 import { BotaoLogout } from '@/components/ui/BotaoLogout'
+import { BotaoNotificacoes } from '@/components/ui/BotaoNotificacoes'
 import { NavColaborador } from '@/components/colaborador/NavColaborador'
 
 export default async function ColaboradorLayout({ children }: { children: React.ReactNode }) {
@@ -26,7 +27,10 @@ export default async function ColaboradorLayout({ children }: { children: React.
     <div className="min-h-screen bg-brand-cream flex flex-col">
       <header className="px-5 h-12 flex items-center justify-between shrink-0">
         <Logo size="sm" />
-        <BotaoLogout />
+        <div className="flex items-center gap-2">
+          <BotaoNotificacoes />
+          <BotaoLogout />
+        </div>
       </header>
       <main className="flex-1 px-4 pt-6 pb-28 max-w-lg mx-auto w-full overflow-x-hidden">
         {children}

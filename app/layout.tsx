@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Roboto_Slab, DM_Sans } from 'next/font/google'
+import { ServiceWorkerRegistrar } from '@/components/ui/ServiceWorkerRegistrar'
 import './globals.css'
 
 const display = Roboto_Slab({
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR">
       <body className={`${display.variable} ${sans.variable} font-sans antialiased bg-brand-cream`}>
+        <ServiceWorkerRegistrar />
         {children}
       </body>
     </html>

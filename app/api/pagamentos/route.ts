@@ -1,6 +1,8 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { assertAdmin } from '@/lib/admin-auth'
+import { logAudit } from '@/lib/audit'
+import { enviarPushParaUsuario } from '@/lib/push'
 
 export async function GET() {
   try {
@@ -47,10 +49,27 @@ export async function PATCH(request: NextRequest) {
       .from('payouts')
       .update({ status: 'pago', pago_em: new Date().toISOString(), pago_por: authUser.id })
       .eq('id', id)
-      .select()
+      .select('*, users!colaborador_id(nome)')
       .single()
 
     if (error) throw error
+
+    const valor = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.valor_total)
+    await Promise.all([
+      logAudit('marcou_pago', {
+        usuarioId: authUser.id,
+        tabela: 'payouts',
+        registroId: id,
+        payload: { colaborador_id: data.colaborador_id, valor_total: data.valor_total },
+      }),
+      enviarPushParaUsuario(
+        data.colaborador_id,
+        'Pagamento realizado!',
+        `Seu pagamento de ${valor} foi confirmado. 🎉`,
+        '/colaborador/historico'
+      ),
+    ])
+
     return NextResponse.json(data)
   } catch {
     return NextResponse.json({ error: 'Erro ao atualizar pagamento' }, { status: 500 })
