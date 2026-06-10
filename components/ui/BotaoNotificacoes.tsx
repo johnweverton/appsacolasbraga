@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bell, BellOff } from 'lucide-react'
+import { Bell, BellOff, X } from 'lucide-react'
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -12,6 +12,7 @@ function urlBase64ToUint8Array(base64String: string) {
 
 export function BotaoNotificacoes() {
   const [status, setStatus] = useState<'loading' | 'unsupported' | 'denied' | 'subscribed' | 'unsubscribed'>('loading')
+  const [bannerVisivel, setBannerVisivel] = useState(false)
 
   useEffect(() => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -29,20 +30,13 @@ export function BotaoNotificacoes() {
     ).catch(() => setStatus('unsubscribed'))
   }, [])
 
-  // Auto-solicita permissão na primeira visita (só se ainda não foi perguntado)
+  // Exibe banner na primeira visita (requer gesto do usuário para iOS)
   useEffect(() => {
     if (status === 'unsubscribed' && Notification.permission === 'default') {
-      subscribe()
+      const dispensado = sessionStorage.getItem('notif-banner-dispensado')
+      if (!dispensado) setBannerVisivel(true)
     }
   }, [status])
-
-  async function toggleSubscription() {
-    if (status === 'subscribed') {
-      await unsubscribe()
-    } else {
-      await subscribe()
-    }
-  }
 
   async function subscribe() {
     try {
@@ -63,8 +57,10 @@ export function BotaoNotificacoes() {
         }),
       })
       setStatus('subscribed')
+      setBannerVisivel(false)
     } catch {
       setStatus('unsubscribed')
+      setBannerVisivel(false)
     }
   }
 
@@ -82,20 +78,58 @@ export function BotaoNotificacoes() {
     setStatus('unsubscribed')
   }
 
+  function dispensarBanner() {
+    sessionStorage.setItem('notif-banner-dispensado', '1')
+    setBannerVisivel(false)
+  }
+
   if (status === 'loading' || status === 'unsupported') return null
   if (status === 'denied') return null
 
   return (
-    <button
-      onClick={toggleSubscription}
-      title={status === 'subscribed' ? 'Desativar notificações' : 'Ativar notificações'}
-      className={`p-2 rounded-full transition-colors ${
-        status === 'subscribed'
-          ? 'text-brand-blue bg-brand-blue/10'
-          : 'text-brand-dark/40 hover:text-brand-dark/70 hover:bg-black/[0.05]'
-      }`}
-    >
-      {status === 'subscribed' ? <Bell size={16} /> : <BellOff size={16} />}
-    </button>
+    <>
+      {/* Banner de ativação */}
+      {bannerVisivel && (
+        <div className="fixed bottom-24 inset-x-0 z-50 px-4">
+          <div className="max-w-lg mx-auto bg-brand-dark rounded-2xl p-4 shadow-xl flex items-start gap-3">
+            <Bell size={20} className="text-brand-blue shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-sm font-semibold">Ativar notificações</p>
+              <p className="text-white/60 text-xs mt-0.5">Receba um aviso assim que seu pagamento for confirmado.</p>
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={subscribe}
+                  className="bg-brand-blue text-white text-xs font-semibold px-4 py-1.5 rounded-lg"
+                >
+                  Ativar
+                </button>
+                <button
+                  onClick={dispensarBanner}
+                  className="text-white/50 text-xs px-3 py-1.5"
+                >
+                  Agora não
+                </button>
+              </div>
+            </div>
+            <button onClick={dispensarBanner} className="text-white/40 shrink-0">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Botão sino no header */}
+      <button
+        onClick={status === 'subscribed' ? unsubscribe : subscribe}
+        title={status === 'subscribed' ? 'Desativar notificações' : 'Ativar notificações'}
+        className={`p-2 rounded-full transition-colors ${
+          status === 'subscribed'
+            ? 'text-brand-blue bg-brand-blue/10'
+            : 'text-brand-dark/40 hover:text-brand-dark/70 hover:bg-black/[0.05]'
+        }`}
+      >
+        {status === 'subscribed' ? <Bell size={16} /> : <BellOff size={16} />}
+      </button>
+    </>
   )
 }
