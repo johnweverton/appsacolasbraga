@@ -7,7 +7,7 @@ function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
   const raw = atob(base64)
-  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)))
+  return Uint8Array.from(Array.from(raw).map((c) => c.charCodeAt(0)))
 }
 
 export function BotaoNotificacoes() {
@@ -51,8 +51,8 @@ export function BotaoNotificacoes() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           endpoint: sub.endpoint,
-          p256dh: key ? btoa(String.fromCharCode(...new Uint8Array(key))) : '',
-          auth: auth ? btoa(String.fromCharCode(...new Uint8Array(auth))) : '',
+          p256dh: key ? btoa(String.fromCharCode(...Array.from(new Uint8Array(key)))) : '',
+          auth: auth ? btoa(String.fromCharCode(...Array.from(new Uint8Array(auth)))) : '',
         }),
       })
       setStatus('subscribed')
