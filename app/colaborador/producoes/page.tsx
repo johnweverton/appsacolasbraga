@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react'
 import { useQuinzenaAtiva } from '@/hooks/useQuinzenaAtiva'
-import { useProducaoColaborador } from '@/hooks/useProducaoColaborador'
+import { useProducaoColaborador, type EntryComParceiro } from '@/hooks/useProducaoColaborador'
 import { useMetricasQuinzena } from '@/hooks/useMetricasQuinzena'
 import { useRealtimeLancamentos } from '@/hooks/useRealtimeLancamentos'
 import { useParceiros } from '@/hooks/useParceiros'
@@ -12,7 +12,7 @@ import type { ProductionEntry } from '@/types'
 
 export default function ProducoesPage() {
   const { quinzena } = useQuinzenaAtiva()
-  const { entries, loading, error } = useProducaoColaborador(quinzena?.id)
+  const { entries, loading, error, removeEntry, updateEntry } = useProducaoColaborador(quinzena?.id)
   const metricas = useMetricasQuinzena(quinzena?.id)
   const parceiros = useParceiros()
 
@@ -21,6 +21,16 @@ export default function ProducoesPage() {
   }, [metricas])
 
   useRealtimeLancamentos(quinzena?.id, handleRealtime)
+
+  function handleEntryDeleted(id: string) {
+    removeEntry(id)
+    metricas.refresh()
+  }
+
+  function handleEntrySaved(updated: EntryComParceiro) {
+    updateEntry(updated)
+    metricas.refresh()
+  }
 
   return (
     <div className="space-y-4">
@@ -38,6 +48,8 @@ export default function ProducoesPage() {
             totalUnidades={metricas.totalUnidades}
             valorEstimado={metricas.valorEstimado}
             parceiros={parceiros}
+            onEntryDeleted={handleEntryDeleted}
+            onEntrySaved={handleEntrySaved}
           />
         )}
       </div>

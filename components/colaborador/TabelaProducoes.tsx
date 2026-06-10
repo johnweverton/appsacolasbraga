@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Pencil } from 'lucide-react'
 import type { EntryComParceiro } from '@/hooks/useProducaoColaborador'
 import { formatDate } from '@/lib/format'
@@ -13,6 +13,8 @@ interface TabelaProducoesProps {
   totalUnidades: number
   valorEstimado: number
   parceiros: { id: string; nome: string }[]
+  onEntryDeleted: (id: string) => void
+  onEntrySaved: (updated: EntryComParceiro) => void
 }
 
 const TURNO_LABEL: Record<string, string> = {
@@ -32,22 +34,8 @@ const STATUS_LABEL: Record<string, string> = {
   divergente: 'Div.',
 }
 
-export function TabelaProducoes({ entries: initialEntries, loading, totalUnidades, valorEstimado, parceiros }: TabelaProducoesProps) {
-  const [entries, setEntries] = useState(initialEntries)
+export function TabelaProducoes({ entries, loading, totalUnidades, valorEstimado, parceiros, onEntryDeleted, onEntrySaved }: TabelaProducoesProps) {
   const [editando, setEditando] = useState<EntryComParceiro | null>(null)
-
-  // Sincroniza quando o hook termina de carregar os dados do servidor
-  useEffect(() => {
-    setEntries(initialEntries)
-  }, [initialEntries])
-
-  function handleSaved(updated: EntryComParceiro) {
-    setEntries((prev) => prev.map((e) => e.id === updated.id ? updated : e))
-  }
-
-  function handleDeleted(id: string) {
-    setEntries((prev) => prev.filter((e) => e.id !== id))
-  }
 
   if (loading) {
     return (
@@ -79,8 +67,8 @@ export function TabelaProducoes({ entries: initialEntries, loading, totalUnidade
           entry={editando}
           parceiros={parceiros}
           onClose={() => setEditando(null)}
-          onSaved={handleSaved}
-          onDeleted={handleDeleted}
+          onSaved={onEntrySaved}
+          onDeleted={onEntryDeleted}
         />
       )}
 

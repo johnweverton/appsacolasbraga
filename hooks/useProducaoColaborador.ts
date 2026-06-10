@@ -39,5 +39,13 @@ export function useProducaoColaborador(quinzenaId: string | undefined) {
     })
   }, [quinzenaId])
 
-  return { entries, loading, error }
+  function removeEntry(id: string) {
+    setEntries((prev) => prev.filter((e) => e.id !== id))
+  }
+
+  function updateEntry(updated: EntryComParceiro) {
+    setEntries((prev) => prev.map((e) => (e.id === updated.id ? { ...e, ...updated } : e)))
+  }
+
+  return { entries, loading, error, removeEntry, updateEntry }
 }
