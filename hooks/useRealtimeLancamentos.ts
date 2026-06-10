@@ -5,8 +5,13 @@ import { createClient } from '@/lib/supabase/client'
 import type { ProductionEntry } from '@/types'
 
 type Callback = (entry: ProductionEntry) => void
+type DeleteCallback = (id: string) => void
 
-export function useRealtimeLancamentos(quinzenaId: string | undefined, onUpdate: Callback) {
+export function useRealtimeLancamentos(
+  quinzenaId: string | undefined,
+  onUpdate: Callback,
+  onDelete?: DeleteCallback
+) {
   useEffect(() => {
     if (!quinzenaId) return
 
@@ -22,6 +27,11 @@ export function useRealtimeLancamentos(quinzenaId: string | undefined, onUpdate:
           filter: `quinzena_id=eq.${quinzenaId}`,
         },
         (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const old = payload.old as { id?: string }
+            if (old?.id) onDelete?.(old.id)
+            return
+          }
           if (payload.new && typeof payload.new === 'object') {
             onUpdate(payload.new as ProductionEntry)
           }
@@ -30,5 +40,5 @@ export function useRealtimeLancamentos(quinzenaId: string | undefined, onUpdate:
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [quinzenaId, onUpdate])
+  }, [quinzenaId, onUpdate, onDelete])
 }

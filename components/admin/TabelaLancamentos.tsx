@@ -46,7 +46,11 @@ export function TabelaLancamentos({
     })
   }, [])
 
-  useRealtimeLancamentos(quinzenaId, handleRealtimeUpdate)
+  const handleRealtimeDelete = useCallback((id: string) => {
+    setEntries((prev) => prev.filter((e) => e.id !== id))
+  }, [])
+
+  useRealtimeLancamentos(quinzenaId, handleRealtimeUpdate, handleRealtimeDelete)
 
   const colaboradores = useMemo(() => {
     if (!mostrarColaborador) return []
