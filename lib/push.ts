@@ -1,12 +1,6 @@
 import webpush from 'web-push'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-webpush.setVapidDetails(
-  'mailto:admin@sacolasbraga.com',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-)
-
 export async function enviarPushParaUsuario(
   userId: string,
   titulo: string,
@@ -14,6 +8,12 @@ export async function enviarPushParaUsuario(
   url = '/'
 ) {
   try {
+    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    const privateKey = process.env.VAPID_PRIVATE_KEY
+    if (!publicKey || !privateKey) return
+
+    webpush.setVapidDetails('mailto:admin@sacolasbraga.com', publicKey, privateKey)
+
     const db = createAdminClient()
     const { data: subs } = await db
       .from('push_subscriptions')
