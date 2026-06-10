@@ -140,7 +140,7 @@ export function BotaoNotificacoes() {
             <p className="text-brand-dark/55 text-sm leading-relaxed mb-6">
               Para receber notificações de pagamento, adicione o app à tela de início:
               <br /><br />
-              <span className="font-semibold text-brand-dark/70">Toque em Compartilhar → "Adicionar à Tela de Início" → Abrir pelo ícone</span>
+              <span className="font-semibold text-brand-dark/70">Toque em Compartilhar → &ldquo;Adicionar à Tela de Início&rdquo; → Abrir pelo ícone</span>
             </p>
             <button onClick={() => setModal(null)} className="w-full bg-brand-dark/10 text-brand-dark font-semibold py-3.5 rounded-2xl text-sm">
               Entendi
