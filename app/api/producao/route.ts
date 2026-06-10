@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { enviarPushParaUsuario } from '@/lib/push'
 import { z } from 'zod'
 
 const entrySchema = z.object({
@@ -78,6 +79,41 @@ export async function POST(request: NextRequest) {
         .from('production_entries')
         .update({ status: novoStatus })
         .in('id', [novaEntrada.id, espelho.id])
+
+      if (novoStatus === 'confirmado') {
+        // Notifica os dois colaboradores
+        await Promise.all([
+          enviarPushParaUsuario(
+            user.id,
+            '✅ Registro confirmado!',
+            `Seu lançamento de ${novaEntrada.quantidade} unidades foi confirmado automaticamente.`,
+            '/colaborador/producoes'
+          ),
+          enviarPushParaUsuario(
+            novaEntrada.parceiro_id,
+            '✅ Registro confirmado!',
+            `Seu lançamento de ${espelho.quantidade} unidades foi confirmado automaticamente.`,
+            '/colaborador/producoes'
+          ),
+        ])
+      } else {
+        // Notifica os dois sobre a divergência
+        await Promise.all([
+          enviarPushParaUsuario(
+            user.id,
+            '⚠️ Divergência encontrada',
+            'As quantidades registradas com seu parceiro não coincidem. O admin irá verificar.',
+            '/colaborador/producoes'
+          ),
+          enviarPushParaUsuario(
+            novaEntrada.parceiro_id,
+            '⚠️ Divergência encontrada',
+            'As quantidades registradas com seu parceiro não coincidem. O admin irá verificar.',
+            '/colaborador/producoes'
+          ),
+        ])
+      }
+
       return NextResponse.json({ ...novaEntrada, status: novoStatus }, { status: 201 })
     }
 

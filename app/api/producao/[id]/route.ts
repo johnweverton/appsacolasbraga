@@ -2,6 +2,7 @@ import { NextResponse, NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { assertAdmin } from '@/lib/admin-auth'
 import { logAudit } from '@/lib/audit'
+import { enviarPushParaUsuario } from '@/lib/push'
 import { z } from 'zod'
 
 const patchAdminSchema = z.object({
@@ -121,6 +122,16 @@ export async function PATCH(
         registroId: params.id,
         payload: { novo_status: parsed.data.status },
       })
+
+      // Notifica o colaborador quando admin confirma manualmente
+      if (parsed.data.status === 'confirmado' && data.colaborador_id) {
+        await enviarPushParaUsuario(
+          data.colaborador_id,
+          '✅ Registro confirmado!',
+          `Seu lançamento de ${data.quantidade} unidades foi confirmado pelo administrador.`,
+          '/colaborador/producoes'
+        )
+      }
 
       return NextResponse.json(data)
     }
