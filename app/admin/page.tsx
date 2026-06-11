@@ -24,9 +24,10 @@ export default async function AdminDashboard() {
 
   const allEntries = (entries ?? []) as ProductionEntry[]
   // Conta pendente + confirmado (só divergente não conta)
+  // Cada cor exige uma passada de impressão separada: unidade efetiva = quantidade × cores
   const totalUnidades = allEntries
     .filter((e) => e.status !== 'divergente')
-    .reduce((sum, e) => sum + e.quantidade, 0)
+    .reduce((sum, e) => sum + e.quantidade * e.cores, 0)
   const divergencias = allEntries.filter((e) => e.status === 'divergente')
 
   return (

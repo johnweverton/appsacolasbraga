@@ -60,7 +60,8 @@ export default async function LancamentosPage() {
     const atual = colaboradorMap.get(e.colaborador_id) ?? { nome: u.nome, funcao: u.funcao, unidades: 0, temDivergencia: false }
     colaboradorMap.set(e.colaborador_id, {
       ...atual,
-      unidades: atual.unidades + (e.status !== 'divergente' ? e.quantidade : 0),
+      // Cada cor exige uma passada de impressão separada: unidade efetiva = quantidade × cores
+      unidades: atual.unidades + (e.status !== 'divergente' ? e.quantidade * e.cores : 0),
       temDivergencia: atual.temDivergencia || e.status === 'divergente',
     })
   }

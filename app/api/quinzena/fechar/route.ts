@@ -37,7 +37,7 @@ export async function POST() {
     const [{ data: entries }, { data: rates }, { data: payoutsExistentes }] = await Promise.all([
       supabase
         .from('production_entries')
-        .select('colaborador_id, quantidade, status, funcao')
+        .select('colaborador_id, quantidade, cores, status, funcao')
         .eq('quinzena_id', quinzena.id),
       supabase.from('payment_rates').select('funcao, valor_unitario').is('vigencia_fim', null),
       supabase.from('payouts').select('colaborador_id').eq('quinzena_id', quinzena.id),

@@ -20,7 +20,7 @@ export default async function RelatoriosPage() {
       .limit(6),
     supabase
       .from('production_entries')
-      .select('quinzena_id, colaborador_id, quantidade, status'),
+      .select('quinzena_id, colaborador_id, quantidade, cores, status'),
     supabase
       .from('payouts')
       .select('quinzena_id, colaborador_id, valor_total, total_unidades'),
@@ -39,7 +39,8 @@ export default async function RelatoriosPage() {
     const periodo = `${q.data_inicio.slice(5, 10)} – ${q.data_fim.slice(5, 10)}`
     return {
       periodo,
-      unidades: qEntries.reduce((s, e) => s + (e.status !== 'divergente' ? e.quantidade : 0), 0),
+      // Cada cor exige uma passada de impressão separada: unidade efetiva = quantidade × cores
+      unidades: qEntries.reduce((s, e) => s + (e.status !== 'divergente' ? e.quantidade * e.cores : 0), 0),
       valor: qPayouts.reduce((s, p) => s + p.valor_total, 0),
       pendente: qEntries.filter((e) => e.status === 'pendente').length,
       confirmado: qEntries.filter((e) => e.status === 'confirmado').length,
@@ -53,7 +54,7 @@ export default async function RelatoriosPage() {
   for (const e of (entries ?? [])) {
     if (!ultimas2.includes(e.quinzena_id)) continue
     if (e.status === 'divergente') continue
-    rankMap.set(e.colaborador_id, (rankMap.get(e.colaborador_id) ?? 0) + e.quantidade)
+    rankMap.set(e.colaborador_id, (rankMap.get(e.colaborador_id) ?? 0) + e.quantidade * e.cores)
   }
   const topColaboradores = Array.from(rankMap.entries())
     .sort((a, b) => b[1] - a[1])
@@ -62,7 +63,8 @@ export default async function RelatoriosPage() {
 
   // Totais gerais
   const totalPago = (payouts ?? []).reduce((s, p) => s + p.valor_total, 0)
-  const totalUnidades = (entries ?? []).reduce((s, e) => s + (e.status !== 'divergente' ? e.quantidade : 0), 0)
+  // Cada cor exige uma passada de impressão separada: unidade efetiva = quantidade × cores
+  const totalUnidades = (entries ?? []).reduce((s, e) => s + (e.status !== 'divergente' ? e.quantidade * e.cores : 0), 0)
   const totalDivergentes = (entries ?? []).filter((e) => e.status === 'divergente').length
 
   return (

@@ -18,18 +18,20 @@ export function calcularValorProducao(quantidade: number, valorPorMilheiro: numb
 }
 
 export function calcularPayouts(
-  entries: { colaborador_id: string; quantidade: number; status: string; funcao: string }[],
+  entries: { colaborador_id: string; quantidade: number; cores: number; status: string; funcao: string }[],
   rates: { funcao: string; valor_unitario: number }[],
 ): PayoutCalculo[] {
   // Inclui pendente + confirmado; apenas divergente é excluído
   const confirmados = entries.filter((e) => e.status !== 'divergente')
 
   // Agrupa por (colaborador_id, funcao) para aplicar taxa correta por função
+  // Cada cor exige uma passada de impressão separada, então a unidade
+  // efetiva para pagamento é quantidade × cores.
   const grupos = new Map<string, Map<string, number>>()
   confirmados.forEach((e) => {
     if (!grupos.has(e.colaborador_id)) grupos.set(e.colaborador_id, new Map())
     const byFuncao = grupos.get(e.colaborador_id)!
-    byFuncao.set(e.funcao, (byFuncao.get(e.funcao) ?? 0) + e.quantidade)
+    byFuncao.set(e.funcao, (byFuncao.get(e.funcao) ?? 0) + e.quantidade * e.cores)
   })
 
   const payouts: PayoutCalculo[] = []

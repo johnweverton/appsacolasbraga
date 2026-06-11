@@ -50,7 +50,8 @@ export function DetalheQuinzena({ quinzena, onClose }: DetalheQuinzenaProps) {
     })
   }, [quinzena.id])
 
-  const total = entries.reduce((s, e) => s + e.quantidade, 0)
+  // Cada cor exige uma passada de impressão separada: unidade efetiva = quantidade × cores
+  const total = entries.reduce((s, e) => s + e.quantidade * e.cores, 0)
 
   return (
     <div className="fixed inset-0 z-50 bg-brand-cream flex flex-col">

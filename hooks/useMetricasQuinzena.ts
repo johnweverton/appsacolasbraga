@@ -27,7 +27,7 @@ export function useMetricasQuinzena(quinzenaId: string | undefined): MetricasQui
     const [{ data: entries }, { data: profile }, { data: quinzena }] = await Promise.all([
       supabase
         .from('production_entries')
-        .select('quantidade')
+        .select('quantidade, cores')
         .eq('quinzena_id', quinzenaId)
         .eq('colaborador_id', user.id),
       supabase
@@ -42,7 +42,8 @@ export function useMetricasQuinzena(quinzenaId: string | undefined): MetricasQui
         .single(),
     ])
 
-    const total = (entries ?? []).reduce((s, e) => s + e.quantidade, 0)
+    // Cada cor exige uma passada de impressão separada: unidade efetiva = quantidade × cores
+    const total = (entries ?? []).reduce((s, e) => s + e.quantidade * e.cores, 0)
     setTotalUnidades(total)
 
     if (profile?.funcao) {

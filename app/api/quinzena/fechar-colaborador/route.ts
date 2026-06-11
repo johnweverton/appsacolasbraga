@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const [{ data: entries }, { data: rates }] = await Promise.all([
       supabase
         .from('production_entries')
-        .select('colaborador_id, quantidade, status, funcao')
+        .select('colaborador_id, quantidade, cores, status, funcao')
         .eq('quinzena_id', quinzena_id)
         .eq('colaborador_id', colaborador_id),
       supabase.from('payment_rates').select('funcao, valor_unitario').is('vigencia_fim', null),
