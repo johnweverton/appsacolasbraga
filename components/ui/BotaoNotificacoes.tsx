@@ -10,16 +10,27 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from(Array.from(raw).map((c) => c.charCodeAt(0)))
 }
 
-type ModalTipo = 'ativar' | 'bloqueado' | 'instalar' | null
+function isStandalone() {
+  if (typeof window === 'undefined') return false
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+  )
+}
+
+type ModalTipo = 'ativar' | 'bloqueado' | 'instalar' | 'reinstalar' | null
 
 export function BotaoNotificacoes() {
-  const [status, setStatus] = useState<'loading' | 'unsupported' | 'denied' | 'subscribed' | 'unsubscribed'>('loading')
+  const [status, setStatus] = useState<'loading' | 'unsupported' | 'unsupported-device' | 'denied' | 'subscribed' | 'unsubscribed'>('loading')
   const [modal, setModal] = useState<ModalTipo>(null)
 
   useEffect(() => {
     // Verifica permissão imediatamente, sem esperar o service worker
     if (typeof Notification === 'undefined') {
-      setStatus('unsupported')
+      // Já está em modo standalone (aberto pelo ícone), mas o ícone foi
+      // adicionado à tela de início antes do app suportar PWA/Push —
+      // precisa remover e adicionar de novo (ou atualizar o iOS < 16.4)
+      setStatus(isStandalone() ? 'unsupported-device' : 'unsupported')
       return
     }
 
@@ -50,8 +61,9 @@ export function BotaoNotificacoes() {
 
   // Abre o modal correto assim que o status é conhecido
   useEffect(() => {
-    if (status === 'unsupported') { setModal('instalar'); return }
-    if (status === 'denied')      { setModal('bloqueado'); return }
+    if (status === 'unsupported')        { setModal('instalar'); return }
+    if (status === 'unsupported-device') { setModal('reinstalar'); return }
+    if (status === 'denied')             { setModal('bloqueado'); return }
     if (status === 'unsubscribed') {
       const perm = typeof Notification !== 'undefined' ? Notification.permission : 'default'
       if (perm === 'default') setModal('ativar')
@@ -177,9 +189,33 @@ export function BotaoNotificacoes() {
             </div>
             <h2 className="font-display font-bold text-brand-dark text-xl mb-2">Instale o app</h2>
             <p className="text-brand-dark/55 text-sm leading-relaxed mb-6">
-              Para receber notificações de pagamento, adicione o app à tela de início:
+              Para receber notificações de pagamento, o app precisa ser aberto pelo ícone na tela de início (não pelo Safari):
               <br /><br />
-              <span className="font-semibold text-brand-dark/70">Toque em Compartilhar → &ldquo;Adicionar à Tela de Início&rdquo; → Abrir pelo ícone</span>
+              <span className="font-semibold text-brand-dark/70">Ainda não adicionou? Toque em Compartilhar → &ldquo;Adicionar à Tela de Início&rdquo;.</span>
+              <br /><br />
+              <span className="font-semibold text-brand-dark/70">Já adicionou? Feche o Safari e abra o app pelo ícone na tela de início.</span>
+            </p>
+            <button onClick={() => setModal(null)} className="w-full bg-brand-dark/10 text-brand-dark font-semibold py-3.5 rounded-2xl text-sm">
+              Entendi
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: app já em modo standalone, mas ícone instalado antes do suporte a Push */}
+      {modal === 'reinstalar' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-white rounded-3xl p-7 shadow-2xl flex flex-col items-center text-center">
+            <div className="bg-red-50 rounded-full p-4 mb-4">
+              <BellMinus size={32} className="text-red-400" />
+            </div>
+            <h2 className="font-display font-bold text-brand-dark text-xl mb-2">Notificações indisponíveis</h2>
+            <p className="text-brand-dark/55 text-sm leading-relaxed mb-6">
+              O ícone do app na sua tela de início foi adicionado antes do suporte a notificações ser ativado.
+              <br /><br />
+              <span className="font-semibold text-brand-dark/70">Remova o ícone &ldquo;Sacolas Braga&rdquo; da tela de início e adicione novamente: Compartilhar → &ldquo;Adicionar à Tela de Início&rdquo;.</span>
+              <br /><br />
+              Se mesmo assim não funcionar, atualize o iOS em Ajustes → Geral → Atualização de Software (necessário 16.4+).
             </p>
             <button onClick={() => setModal(null)} className="w-full bg-brand-dark/10 text-brand-dark font-semibold py-3.5 rounded-2xl text-sm">
               Entendi
@@ -190,7 +226,11 @@ export function BotaoNotificacoes() {
 
       {/* Botão sino no header */}
       <button
-        onClick={status === 'subscribed' ? unsubscribe : () => setModal(status === 'unsupported' ? 'instalar' : status === 'denied' ? 'bloqueado' : 'ativar')}
+        onClick={status === 'subscribed' ? unsubscribe : () => setModal(
+          status === 'unsupported' ? 'instalar' :
+          status === 'unsupported-device' ? 'reinstalar' :
+          status === 'denied' ? 'bloqueado' : 'ativar'
+        )}
         title={status === 'subscribed' ? 'Desativar notificações' : 'Ativar notificações'}
         className={`p-2 rounded-full transition-colors ${
           status === 'subscribed'
