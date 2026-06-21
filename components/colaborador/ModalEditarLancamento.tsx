@@ -31,8 +31,9 @@ export function ModalEditarLancamento({ entry, parceiros, onClose, onSaved, onDe
   const [deleting, setDeleting] = useState(false)
   const [erro, setErro] = useState('')
 
-  // Lançamento travado em divergência: colaborador só pode corrigir a função.
-  const soFuncao = entry.status === 'divergente'
+  // Lançamento travado em divergência: colaborador só corrige função/quantidade;
+  // os campos que identificam o trabalho ficam travados.
+  const corrigindoDivergencia = entry.status === 'divergente'
 
   // Garante que o parceiro atual do lançamento apareça nas opções,
   // mesmo que tenha sido desativado depois do registro.
@@ -99,14 +100,14 @@ export function ModalEditarLancamento({ entry, parceiros, onClose, onSaved, onDe
         {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="font-display font-bold text-brand-dark text-lg">
-            {soFuncao ? 'Corrigir Divergência' : 'Editar Lançamento'}
+            {corrigindoDivergencia ? 'Corrigir Divergência' : 'Editar Lançamento'}
           </h2>
           <button onClick={onClose} className="p-1.5 rounded-full hover:bg-black/[0.05] transition-colors">
             <X size={18} className="text-brand-dark/40" />
           </button>
         </div>
 
-        {soFuncao && (
+        {corrigindoDivergencia && (
           <div className="rounded-xl bg-red-50 border border-red-100 px-3 py-2.5">
             <p className="text-xs font-sans text-red-600 leading-snug">
               {entry.observacao
@@ -128,7 +129,7 @@ export function ModalEditarLancamento({ entry, parceiros, onClose, onSaved, onDe
             <select
               value={form.parceiro_id}
               onChange={(e) => set('parceiro_id', e.target.value)}
-              disabled={soFuncao}
+              disabled={corrigindoDivergencia}
               className={`${inputClass} disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {opcoesParceiros.map((p) => (
@@ -145,7 +146,7 @@ export function ModalEditarLancamento({ entry, parceiros, onClose, onSaved, onDe
               type="date"
               value={form.data_producao}
               onChange={(e) => set('data_producao', e.target.value)}
-              disabled={soFuncao}
+              disabled={corrigindoDivergencia}
               className={`${inputClass} disabled:opacity-50 disabled:cursor-not-allowed`}
             />
           </div>
@@ -181,7 +182,7 @@ export function ModalEditarLancamento({ entry, parceiros, onClose, onSaved, onDe
                 type="text"
                 value={form.marca}
                 onChange={(e) => set('marca', e.target.value)}
-                disabled={soFuncao}
+                disabled={corrigindoDivergencia}
                 className={`${inputClass} disabled:opacity-50 disabled:cursor-not-allowed`}
               />
             </div>
@@ -193,7 +194,7 @@ export function ModalEditarLancamento({ entry, parceiros, onClose, onSaved, onDe
                 type="text"
                 value={form.tamanho}
                 onChange={(e) => set('tamanho', e.target.value)}
-                disabled={soFuncao}
+                disabled={corrigindoDivergencia}
                 className={`${inputClass} disabled:opacity-50 disabled:cursor-not-allowed`}
               />
             </div>
@@ -209,7 +210,7 @@ export function ModalEditarLancamento({ entry, parceiros, onClose, onSaved, onDe
                 min={1}
                 value={form.cores}
                 onChange={(e) => set('cores', e.target.value)}
-                disabled={soFuncao}
+                disabled={corrigindoDivergencia}
                 className={`${inputClass} disabled:opacity-50 disabled:cursor-not-allowed`}
               />
             </div>
@@ -243,7 +244,7 @@ export function ModalEditarLancamento({ entry, parceiros, onClose, onSaved, onDe
         </button>
 
         {/* Excluir — indisponível enquanto travado em divergência */}
-        {soFuncao ? null : !confirmDelete ? (
+        {corrigindoDivergencia ? null : !confirmDelete ? (
           <button
             onClick={() => setConfirmDelete(true)}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-red-200 text-red-600 text-sm font-sans font-medium hover:bg-red-50 active:scale-[0.98] transition-all"
