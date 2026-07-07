@@ -128,7 +128,7 @@ describe('calcularPayouts — funcao "ambos" (lançamento solo, pintor + ajudant
     { funcao: 'ajudante', valor_unitario: AJUDANTE },
   ]
 
-  it('credita a mesma quantidade nas duas funções, pagando as duas taxas', () => {
+  it('credita a mesma quantidade nas duas funções, pagando as duas taxas de forma proporcional (sem bônus de faixa)', () => {
     const payouts = calcularPayouts(
       [{ colaborador_id: 'c1', quantidade: 800, cores: 1, status: 'pendente', funcao: 'ambos' }],
       RATES,
@@ -136,8 +136,10 @@ describe('calcularPayouts — funcao "ambos" (lançamento solo, pintor + ajudant
 
     // 800 unidades contam para pintor E para ajudante → 1600 no total
     expect(payouts[0].total_unidades).toBe(1600)
+    // crédito derivado de 'ambos' não é elegível ao benefício de faixa (500-999 cheio):
+    // sempre proporcional, para não pagar o bônus em dobro sobre o mesmo lote físico
     expect(payouts[0].valor_total).toBeCloseTo(
-      calcularValorProducao(800, IMPRESSOR) + calcularValorProducao(800, AJUDANTE),
+      (800 / 1000) * IMPRESSOR + (800 / 1000) * AJUDANTE,
       2,
     )
     // duas taxas diferentes aplicadas → valor_unitario "variável" (0)
@@ -171,9 +173,30 @@ describe('calcularPayouts — funcao "ambos" (lançamento solo, pintor + ajudant
     )
 
     expect(payouts[0].total_unidades).toBe(800 + 800 + 200)
+    // 200 (pintor direto, fora da faixa) + 800 (ambos→pintor, sempre proporcional) + 800 (ambos→ajudante, sempre proporcional)
     expect(payouts[0].valor_total).toBeCloseTo(
-      calcularValorProducao(1000, IMPRESSOR) + calcularValorProducao(800, AJUDANTE),
+      calcularValorProducao(200, IMPRESSOR) + (800 / 1000) * IMPRESSOR + (800 / 1000) * AJUDANTE,
       2,
     )
+  })
+
+  it('regressão: 1000 pintor direto + 500 ambos não paga o bônus de faixa em dobro sobre o mesmo lote', () => {
+    // Caso real reportado: colaborador com 1000 unid. como pintor + 500 unid. como
+    // ambos (pintor+ajudante). Antes da correção, o crédito de ajudante derivado do
+    // 'ambos' (500 unid., sozinho) caía na faixa 500-999 e pagava o milheiro cheio
+    // (R$20,00) em vez do proporcional (R$10,00), somando R$57,50 em vez de R$47,50.
+    const payouts = calcularPayouts(
+      [
+        { colaborador_id: 'c1', quantidade: 1000, cores: 1, status: 'pendente', funcao: 'pintor' },
+        { colaborador_id: 'c1', quantidade: 500, cores: 1, status: 'pendente', funcao: 'ambos' },
+      ],
+      RATES,
+    )
+
+    expect(payouts[0].total_unidades).toBe(1000 + 500 + 500)
+    // pintor direto: 1000 → proporcional R$25,00
+    // ambos→pintor: 500 → proporcional R$12,50 (sem bônus de faixa)
+    // ambos→ajudante: 500 → proporcional R$10,00 (sem bônus de faixa)
+    expect(payouts[0].valor_total).toBeCloseTo(47.5, 2)
   })
 })
