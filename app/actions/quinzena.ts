@@ -44,3 +44,37 @@ export async function criarOuObterQuinzenaAtiva(): Promise<PayPeriod | null> {
 
   return nova as PayPeriod
 }
+
+/**
+ * Resolve em qual quinzena o colaborador deve lançar produção agora.
+ *
+ * Normalmente é a quinzena global 'aberta'. Mas se o admin fechou a quinzena
+ * deixando esse colaborador pendente (ele tem lançamentos ali mas ainda não
+ * foi fechado individualmente), ele continua lançando na quinzena antiga —
+ * mesmo que ela já esteja 'fechada' — até o admin fechar a produção dele.
+ */
+export async function obterQuinzenaAtivaColaborador(userId: string): Promise<PayPeriod | null> {
+  const supabase = serviceClient()
+
+  const { data: fechadas } = await supabase
+    .from('pay_periods')
+    .select('*')
+    .eq('status', 'fechada')
+    .order('data_fim', { ascending: false })
+
+  if (fechadas && fechadas.length > 0) {
+    const ids = fechadas.map((q) => q.id)
+    const [{ data: entradas }, { data: payouts }] = await Promise.all([
+      supabase.from('production_entries').select('quinzena_id').eq('colaborador_id', userId).in('quinzena_id', ids),
+      supabase.from('payouts').select('quinzena_id').eq('colaborador_id', userId).in('quinzena_id', ids),
+    ])
+    const quinzenasComLancamento = new Set((entradas ?? []).map((e) => e.quinzena_id))
+    const quinzenasJaFechadasParaMim = new Set((payouts ?? []).map((p) => p.quinzena_id))
+    const pendente = fechadas.find(
+      (q) => quinzenasComLancamento.has(q.id) && !quinzenasJaFechadasParaMim.has(q.id)
+    )
+    if (pendente) return pendente as PayPeriod
+  }
+
+  return criarOuObterQuinzenaAtiva()
+}

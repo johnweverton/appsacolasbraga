@@ -22,15 +22,18 @@ export async function POST(request: NextRequest) {
     const { quinzena_id, colaborador_id } = parsed.data
     const supabase = createClient()
 
-    // Quinzena deve estar aberta
+    // A quinzena pode estar aberta OU já fechada (caso de colaborador que
+    // ficou pendente quando o admin fechou a quinzena deixando-o de fora
+    // propositalmente, para continuar produzindo). O que bloqueia é só já
+    // ter payout gerado (checado abaixo).
     const { data: quinzena } = await supabase
       .from('pay_periods')
       .select('id, status')
       .eq('id', quinzena_id)
       .single()
 
-    if (!quinzena || quinzena.status !== 'aberta') {
-      return NextResponse.json({ error: 'Quinzena não encontrada ou já fechada.' }, { status: 400 })
+    if (!quinzena) {
+      return NextResponse.json({ error: 'Quinzena não encontrada.' }, { status: 400 })
     }
 
     // Colaborador não pode já ter payout nessa quinzena

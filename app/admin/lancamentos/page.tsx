@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { TabelaLancamentos } from '@/components/admin/TabelaLancamentos'
 import { BotaoFecharColaborador } from '@/components/admin/BotaoFecharColaborador'
 import { BotaoAuditar } from '@/components/admin/BotaoAuditar'
-import { calcularPayouts, formatarMoeda } from '@/lib/calculos'
+import { resumoPorColaborador, formatarMoeda } from '@/lib/calculos'
 import type { ProductionEntry } from '@/types'
 
 export default async function LancamentosPage() {
@@ -50,31 +50,12 @@ export default async function LancamentosPage() {
   }))
 
   // Monta resumo por colaborador
-  const jaFechadosMap = new Map(
-    (payoutsExistentes ?? []).map((p) => [p.colaborador_id, p.valor_total as number])
+  const resumoColaboradores = resumoPorColaborador(
+    entriesComNome,
+    users ?? [],
+    rates ?? [],
+    payoutsExistentes ?? [],
   )
-
-  const colaboradorMap = new Map<string, { nome: string; funcao: string; unidades: number; temDivergencia: boolean }>()
-  for (const e of entriesComNome) {
-    const u = users?.find((u) => u.id === e.colaborador_id)
-    if (!u) continue
-    const atual = colaboradorMap.get(e.colaborador_id) ?? { nome: u.nome, funcao: u.funcao, unidades: 0, temDivergencia: false }
-    colaboradorMap.set(e.colaborador_id, {
-      ...atual,
-      // Cada cor exige uma passada de impressão separada: unidade efetiva = quantidade × cores
-      unidades: atual.unidades + (e.status !== 'divergente' ? e.quantidade * e.cores : 0),
-      temDivergencia: atual.temDivergencia || e.status === 'divergente',
-    })
-  }
-
-  // Usa calcularPayouts para estimativa correta por função (suporta multi-função)
-  const payoutsEstimados = calcularPayouts(entriesComNome, rates ?? [])
-  const estimadoMap = new Map(payoutsEstimados.map((p) => [p.colaborador_id, p.valor_total]))
-
-  const resumoColaboradores = Array.from(colaboradorMap.entries()).map(([id, info]) => {
-    const valorEstimado = estimadoMap.get(id) ?? 0
-    return { id, ...info, valorEstimado, jaFechado: jaFechadosMap.has(id), valorPago: jaFechadosMap.get(id) ?? 0 }
-  })
 
   return (
     <div className="space-y-6">

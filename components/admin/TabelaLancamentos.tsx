@@ -232,7 +232,9 @@ export function TabelaLancamentos({
                     <td className="px-4 py-3 font-medium text-gray-700">{entry.nome_colaborador ?? '—'}</td>
                   )}
                   {mostrarColaborador && (
-                    <td className="px-4 py-3 text-gray-500">{entry.nome_parceiro ?? '—'}</td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {entry.parceiro_id === entry.colaborador_id ? 'Sozinho' : entry.nome_parceiro ?? '—'}
+                    </td>
                   )}
                   <td className="px-4 py-3">{formatDate(entry.data_producao)}</td>
                   <td className="px-4 py-3 capitalize text-gray-500">{entry.funcao ?? '—'}</td>

@@ -102,7 +102,9 @@ export function DetalheQuinzena({ quinzena, onClose }: DetalheQuinzenaProps) {
                     <p className="text-xs font-sans font-semibold text-brand-dark truncate">{e.marca}</p>
                     <p className="text-[10px] font-sans text-brand-dark/40 truncate">{e.tamanho}</p>
                   </div>
-                  <span className="text-[10px] font-sans text-brand-dark/50 truncate">{e.nome_parceiro ?? '—'}</span>
+                  <span className="text-[10px] font-sans text-brand-dark/50 truncate">
+                    {e.parceiro_id === e.colaborador_id ? 'Sozinho' : e.nome_parceiro ?? '—'}
+                  </span>
                   <span className="text-[10px] font-sans text-brand-dark/50 tabular-nums">{e.cores}</span>
                   <span className="text-xs font-sans font-bold text-brand-dark tabular-nums">
                     {e.quantidade.toLocaleString('pt-BR')}

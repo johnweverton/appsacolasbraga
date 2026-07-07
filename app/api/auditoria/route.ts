@@ -153,6 +153,9 @@ export async function POST(request: NextRequest) {
     // Avisos advisórios: pendentes sem par cuja função destoa do perfil
     for (const e of entries) {
       if (emPar.has(e.id) || e.status === 'divergente') continue
+      // Lançamento solo (parceiro = si mesmo): não há parceiro para "esperar",
+      // então o aviso de função destoante do perfil não se aplica aqui.
+      if (e.parceiro_id === e.colaborador_id) continue
       const suspeita = auditarLancamentoSolo(
         { colaborador_id: e.colaborador_id, funcao: e.funcao, quantidade: e.quantidade },
         perfis.get(e.colaborador_id),

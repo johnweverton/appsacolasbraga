@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { criarOuObterQuinzenaAtiva } from '@/app/actions/quinzena'
+import { obterQuinzenaAtivaColaborador } from '@/app/actions/quinzena'
 import type { PayPeriod } from '@/types'
 
 export function useQuinzenaAtiva() {
@@ -13,29 +13,19 @@ export function useQuinzenaAtiva() {
   useEffect(() => {
     const supabase = createClient()
 
-    supabase
-      .from('pay_periods')
-      .select('*')
-      .eq('status', 'aberta')
-      .maybeSingle()
-      .then(async ({ data, error: err }) => {
-        if (err) {
-          setError(new Error('Erro ao buscar quinzena ativa'))
-          setLoading(false)
-          return
-        }
-
-        if (data) {
-          setQuinzena(data as PayPeriod)
-          setLoading(false)
-          return
-        }
-
-        // Nenhuma quinzena aberta → auto-criar via server action
-        const nova = await criarOuObterQuinzenaAtiva()
-        setQuinzena(nova)
+    supabase.auth.getUser().then(async ({ data: { user }, error: err }) => {
+      if (err || !user) {
+        setError(new Error('Erro ao buscar quinzena ativa'))
         setLoading(false)
-      })
+        return
+      }
+
+      // Prioriza uma quinzena fechada onde o colaborador ainda está pendente
+      // (produção não fechada); caso contrário, usa a quinzena global aberta.
+      const ativa = await obterQuinzenaAtivaColaborador(user.id)
+      setQuinzena(ativa)
+      setLoading(false)
+    })
   }, [])
 
   return { quinzena, loading, error }

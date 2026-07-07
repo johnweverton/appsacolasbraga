@@ -9,6 +9,7 @@ interface ModalConfirmacaoProps {
   onConfirmar: () => void
   onCancelar: () => void
   carregando?: boolean
+  children?: React.ReactNode
 }
 
 export function ModalConfirmacao({
@@ -18,6 +19,7 @@ export function ModalConfirmacao({
   onConfirmar,
   onCancelar,
   carregando,
+  children,
 }: ModalConfirmacaoProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -25,6 +27,7 @@ export function ModalConfirmacao({
       <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
         <h3 className="text-base font-semibold text-gray-900">{titulo}</h3>
         <p className="text-sm text-gray-600">{descricao}</p>
+        {children}
         <div className="flex gap-3 justify-end">
           <Button variant="outline" onClick={onCancelar} disabled={carregando}>
             Cancelar

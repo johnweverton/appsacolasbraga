@@ -22,6 +22,22 @@ export default async function QuinzenaPage() {
     .order('data_fim', { ascending: false })
     .limit(5)
 
+  // Colaboradores com lançamentos na quinzena aberta que ainda não foram
+  // fechados individualmente — candidatos a "deixar pendente" ao fechar.
+  let colaboradoresPendentes: { id: string; nome: string }[] = []
+  if (quinzenaAtiva) {
+    const [{ data: entries }, { data: users }, { data: payouts }] = await Promise.all([
+      supabase.from('production_entries').select('colaborador_id').eq('quinzena_id', quinzenaAtiva.id),
+      supabase.from('users').select('id, nome').in('funcao', ['pintor', 'ajudante']),
+      supabase.from('payouts').select('colaborador_id').eq('quinzena_id', quinzenaAtiva.id),
+    ])
+    const idsComLancamento = new Set((entries ?? []).map((e) => e.colaborador_id))
+    const idsJaFechados = new Set((payouts ?? []).map((p) => p.colaborador_id))
+    colaboradoresPendentes = (users ?? [])
+      .filter((u) => idsComLancamento.has(u.id) && !idsJaFechados.has(u.id))
+      .map((u) => ({ id: u.id, nome: u.nome }))
+  }
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-gray-800">Quinzena Ativa</h2>
@@ -38,7 +54,7 @@ export default async function QuinzenaPage() {
             <p>Fim: <strong>{formatDate(quinzenaAtiva.data_fim)}</strong></p>
             <p>Pagamento: <strong>{formatDate(quinzenaAtiva.data_pagamento)}</strong></p>
           </div>
-          <BotaoFecharQuinzena />
+          <BotaoFecharQuinzena colaboradoresPendentes={colaboradoresPendentes} />
         </div>
       ) : (
         <FormNovaQuinzena />

@@ -6,18 +6,36 @@ import { ModalConfirmacao } from '@/components/ui/ModalConfirmacao'
 import { Toast } from '@/components/ui/Toast'
 import { useToast } from '@/hooks/useToast'
 
-export function BotaoFecharQuinzena() {
+interface BotaoFecharQuinzenaProps {
+  colaboradoresPendentes?: { id: string; nome: string }[]
+}
+
+export function BotaoFecharQuinzena({ colaboradoresPendentes = [] }: BotaoFecharQuinzenaProps) {
   const router = useRouter()
   const [mostrarModal, setMostrarModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
+  const [manterPendentes, setManterPendentes] = useState<Set<string>>(new Set())
   const { toast, showToast, hideToast } = useToast()
+
+  function alternarPendente(id: string) {
+    setManterPendentes((prev) => {
+      const novo = new Set(prev)
+      if (novo.has(id)) novo.delete(id)
+      else novo.add(id)
+      return novo
+    })
+  }
 
   async function handleFechar() {
     setLoading(true)
     setErro('')
 
-    const res = await fetch('/api/quinzena/fechar', { method: 'POST' })
+    const res = await fetch('/api/quinzena/fechar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ manter_pendentes: Array.from(manterPendentes) }),
+    })
     const json = await res.json()
 
     if (!res.ok) {
@@ -28,14 +46,17 @@ export function BotaoFecharQuinzena() {
     }
 
     setMostrarModal(false)
+    const avisoPendentes = json.colaboradores_pendentes > 0
+      ? ` ${json.colaboradores_pendentes} colaborador(es) ficaram pendentes e podem ser fechados depois em Lançamentos.`
+      : ''
     const msg = json.aviso
-      ? `Quinzena fechada! ⚠️ ${json.aviso}`
-      : 'Quinzena fechada! Redirecionando para pagamentos...'
+      ? `Quinzena fechada! ⚠️ ${json.aviso}${avisoPendentes}`
+      : `Quinzena fechada!${avisoPendentes} Redirecionando para pagamentos...`
     showToast(msg, json.aviso ? 'error' : 'success')
 
     setTimeout(() => {
       window.location.href = '/admin/pagamentos'
-    }, 1800)
+    }, 2200)
   }
 
   return (
@@ -49,7 +70,30 @@ export function BotaoFecharQuinzena() {
           onConfirmar={handleFechar}
           onCancelar={() => setMostrarModal(false)}
           carregando={loading}
-        />
+        >
+          {colaboradoresPendentes.length > 0 && (
+            <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <p className="text-xs font-medium text-gray-600">
+                Deixar algum colaborador pendente? (ele continua produzindo nesta quinzena e você fecha a produção dele depois, em Lançamentos)
+              </p>
+              <ul className="space-y-1.5 max-h-40 overflow-y-auto">
+                {colaboradoresPendentes.map((c) => (
+                  <li key={c.id}>
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={manterPendentes.has(c.id)}
+                        onChange={() => alternarPendente(c.id)}
+                        className="rounded border-gray-300"
+                      />
+                      {c.nome}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </ModalConfirmacao>
       )}
       {erro && <p className="text-sm text-red-600 bg-red-50 rounded p-2">{erro}</p>}
       <button
