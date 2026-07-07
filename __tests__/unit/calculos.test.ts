@@ -121,3 +121,59 @@ describe('calcularPayouts — multiplicador de cores (quantidade × cores)', () 
     expect(payouts[0].total_unidades).toBe(800)
   })
 })
+
+describe('calcularPayouts — funcao "ambos" (lançamento solo, pintor + ajudante)', () => {
+  const RATES = [
+    { funcao: 'pintor', valor_unitario: IMPRESSOR },
+    { funcao: 'ajudante', valor_unitario: AJUDANTE },
+  ]
+
+  it('credita a mesma quantidade nas duas funções, pagando as duas taxas', () => {
+    const payouts = calcularPayouts(
+      [{ colaborador_id: 'c1', quantidade: 800, cores: 1, status: 'pendente', funcao: 'ambos' }],
+      RATES,
+    )
+
+    // 800 unidades contam para pintor E para ajudante → 1600 no total
+    expect(payouts[0].total_unidades).toBe(1600)
+    expect(payouts[0].valor_total).toBeCloseTo(
+      calcularValorProducao(800, IMPRESSOR) + calcularValorProducao(800, AJUDANTE),
+      2,
+    )
+    // duas taxas diferentes aplicadas → valor_unitario "variável" (0)
+    expect(payouts[0].valor_unitario).toBe(0)
+  })
+
+  it('produz o mesmo valor_total que dois lançamentos separados (pintor + ajudante)', () => {
+    const [ambos] = calcularPayouts(
+      [{ colaborador_id: 'c1', quantidade: 800, cores: 2, status: 'pendente', funcao: 'ambos' }],
+      RATES,
+    )
+    const [separado] = calcularPayouts(
+      [
+        { colaborador_id: 'c1', quantidade: 800, cores: 2, status: 'pendente', funcao: 'pintor' },
+        { colaborador_id: 'c1', quantidade: 800, cores: 2, status: 'pendente', funcao: 'ajudante' },
+      ],
+      RATES,
+    )
+
+    expect(ambos.total_unidades).toBe(separado.total_unidades)
+    expect(ambos.valor_total).toBeCloseTo(separado.valor_total, 2)
+  })
+
+  it('soma "ambos" com lançamentos avulsos de pintor/ajudante do mesmo colaborador', () => {
+    const payouts = calcularPayouts(
+      [
+        { colaborador_id: 'c1', quantidade: 800, cores: 1, status: 'pendente', funcao: 'ambos' },
+        { colaborador_id: 'c1', quantidade: 200, cores: 1, status: 'pendente', funcao: 'pintor' },
+      ],
+      RATES,
+    )
+
+    expect(payouts[0].total_unidades).toBe(800 + 800 + 200)
+    expect(payouts[0].valor_total).toBeCloseTo(
+      calcularValorProducao(1000, IMPRESSOR) + calcularValorProducao(800, AJUDANTE),
+      2,
+    )
+  })
+})

@@ -27,11 +27,22 @@ export function calcularPayouts(
   // Agrupa por (colaborador_id, funcao) para aplicar taxa correta por função
   // Cada cor exige uma passada de impressão separada, então a unidade
   // efetiva para pagamento é quantidade × cores.
+  //
+  // funcao = 'ambos' representa um lançamento solo onde o colaborador fez
+  // pintor E ajudante no mesmo trabalho: credita a mesma quantidade nos dois
+  // grupos, pagando as duas taxas sobre as mesmas unidades — equivalente a
+  // dois lançamentos separados, mas sem precisar duplicar o registro.
   const grupos = new Map<string, Map<string, number>>()
   confirmados.forEach((e) => {
     if (!grupos.has(e.colaborador_id)) grupos.set(e.colaborador_id, new Map())
     const byFuncao = grupos.get(e.colaborador_id)!
-    byFuncao.set(e.funcao, (byFuncao.get(e.funcao) ?? 0) + e.quantidade * e.cores)
+    const unidades = e.quantidade * e.cores
+    if (e.funcao === 'ambos') {
+      byFuncao.set('pintor', (byFuncao.get('pintor') ?? 0) + unidades)
+      byFuncao.set('ajudante', (byFuncao.get('ajudante') ?? 0) + unidades)
+    } else {
+      byFuncao.set(e.funcao, (byFuncao.get(e.funcao) ?? 0) + unidades)
+    }
   })
 
   const payouts: PayoutCalculo[] = []

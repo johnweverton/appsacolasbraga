@@ -15,6 +15,7 @@ export default function RegistrarProducao() {
   const metricas = useMetricasQuinzena(quinzena?.id)
   const parceiros = useParceiros()
   const [defaultFuncao, setDefaultFuncao] = useState<'pintor' | 'ajudante'>('pintor')
+  const [userId, setUserId] = useState<string | null>(null)
   const { toast, showToast, hideToast } = useToast()
 
   useEffect(() => {
@@ -22,6 +23,7 @@ export default function RegistrarProducao() {
 
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return
+      setUserId(user.id)
 
       const { data: profile } = await supabase
         .from('users')
@@ -38,7 +40,7 @@ export default function RegistrarProducao() {
   async function handleSubmit(data: {
     data_producao: string
     turno: 'unico' | 'manha' | 'tarde'
-    funcao: 'pintor' | 'ajudante'
+    funcao: 'pintor' | 'ajudante' | 'ambos'
     marca: string
     tamanho: string
     cores: number
@@ -68,8 +70,14 @@ export default function RegistrarProducao() {
 
       <BannerMetricas {...metricas} />
 
-      {quinzena ? (
-        <FormRegistro parceiros={parceiros} defaultFuncao={defaultFuncao} onSubmit={handleSubmit} />
+      {quinzena && userId ? (
+        <FormRegistro parceiros={parceiros} userId={userId} defaultFuncao={defaultFuncao} onSubmit={handleSubmit} />
+      ) : quinzena ? (
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-11 rounded-xl bg-black/[0.04] animate-pulse" />
+          ))}
+        </div>
       ) : (
         <div className="rounded-3xl border border-dashed border-brand-dark/15 bg-brand-dark/[0.02] py-12 text-center">
           <p className="text-sm font-sans font-medium text-brand-dark/40">

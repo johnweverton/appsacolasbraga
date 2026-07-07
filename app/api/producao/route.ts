@@ -7,7 +7,7 @@ const entrySchema = z.object({
   quinzena_id: z.string().uuid(),
   parceiro_id: z.string().uuid(),
   data_producao: z.string(),
-  funcao: z.enum(['pintor', 'ajudante']),
+  funcao: z.enum(['pintor', 'ajudante', 'ambos']),
   marca: z.string().min(1),
   tamanho: z.string().min(1),
   cores: z.number().int().min(1),
@@ -51,6 +51,14 @@ export async function POST(request: NextRequest) {
 
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+    }
+
+    // "Pintor + Ajudante" só é válido em lançamento solo (parceiro = o próprio colaborador)
+    if (parsed.data.funcao === 'ambos' && parsed.data.parceiro_id !== user.id) {
+      return NextResponse.json(
+        { error: '"Pintor + Ajudante" só pode ser usado em lançamento solo, com você mesmo como parceiro.' },
+        { status: 400 }
+      )
     }
 
     const { data: novaEntrada, error } = await supabase

@@ -15,16 +15,29 @@ interface ModalEditarLancamentoProps {
 const inputClass =
   'w-full rounded-xl border border-black/[0.08] bg-brand-cream px-4 py-3 text-sm font-sans text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-blue/25 focus:border-brand-blue/50 transition-all'
 
+const FUNCAO_LABEL: Record<string, string> = {
+  pintor: 'Pintor',
+  ajudante: 'Ajudante',
+  ambos: 'Pintor + Ajudante',
+}
+
 export function ModalEditarLancamento({ entry, parceiros, onClose, onSaved, onDeleted }: ModalEditarLancamentoProps) {
   const [form, setForm] = useState({
     data_producao: entry.data_producao,
-    funcao: (entry.funcao ?? 'pintor') as 'pintor' | 'ajudante',
+    funcao: (entry.funcao ?? 'pintor') as 'pintor' | 'ajudante' | 'ambos',
     parceiro_id: entry.parceiro_id,
     marca: entry.marca,
     tamanho: entry.tamanho,
     cores: entry.cores,
     quantidade: entry.quantidade,
   })
+
+  // "Pintor + Ajudante" só faz sentido em lançamento solo (parceiro = o
+  // próprio colaborador) — soma as duas funções num único registro.
+  const trabalhandoSozinho = form.parceiro_id === entry.colaborador_id
+  const opcoesFuncao = trabalhandoSozinho
+    ? (['pintor', 'ajudante', 'ambos'] as const)
+    : (['pintor', 'ajudante'] as const)
 
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -42,7 +55,16 @@ export function ModalEditarLancamento({ entry, parceiros, onClose, onSaved, onDe
     : [{ id: entry.parceiro_id, nome: entry.nome_parceiro ?? '—' }, ...parceiros]
 
   function set(field: string, value: string | number) {
-    setForm((prev) => ({ ...prev, [field]: value }))
+    setForm((prev) => {
+      const novo = { ...prev, [field]: value }
+      // "Ambos" só existe para lançamento solo: se o parceiro mudar para
+      // outra pessoa, volta para uma função simples em vez de manter uma
+      // combinação inválida.
+      if (field === 'parceiro_id' && novo.funcao === 'ambos' && value !== entry.colaborador_id) {
+        novo.funcao = 'pintor'
+      }
+      return novo
+    })
     setErro('')
   }
 
@@ -155,19 +177,19 @@ export function ModalEditarLancamento({ entry, parceiros, onClose, onSaved, onDe
             <label className="block text-[10px] font-sans font-semibold uppercase tracking-widest text-brand-dark/40 mb-1">
               Função
             </label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['pintor', 'ajudante'] as const).map((f) => (
+            <div className={`grid gap-2 ${opcoesFuncao.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+              {opcoesFuncao.map((f) => (
                 <button
                   key={f}
                   type="button"
                   onClick={() => set('funcao', f)}
-                  className={`py-2.5 rounded-xl border text-sm font-sans font-semibold capitalize transition-all ${
+                  className={`py-2.5 rounded-xl border text-sm font-sans font-semibold transition-all ${
                     form.funcao === f
                       ? 'bg-brand-blue border-brand-blue text-white'
                       : 'bg-brand-cream border-black/[0.08] text-brand-dark/60'
                   }`}
                 >
-                  {f}
+                  {FUNCAO_LABEL[f]}
                 </button>
               ))}
             </div>

@@ -17,7 +17,7 @@ const patchColaboradorSchema = z.object({
   tamanho: z.string().min(1),
   cores: z.number().int().min(1),
   data_producao: z.string().min(1),
-  funcao: z.enum(['pintor', 'ajudante']),
+  funcao: z.enum(['pintor', 'ajudante', 'ambos']),
   parceiro_id: z.string().uuid(),
 })
 
@@ -160,6 +160,14 @@ export async function PATCH(
 
     const parsed = patchColaboradorSchema.safeParse(body)
     if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+
+    // "Pintor + Ajudante" só é válido em lançamento solo (parceiro = o próprio colaborador)
+    if (parsed.data.funcao === 'ambos' && parsed.data.parceiro_id !== entry.colaborador_id) {
+      return NextResponse.json(
+        { error: '"Pintor + Ajudante" só pode ser usado em lançamento solo, com você mesmo como parceiro.' },
+        { status: 400 }
+      )
+    }
 
     // Em lançamento divergente, só função e quantidade podem mudar — os campos
     // que identificam o trabalho (cores/marca/tamanho/data/parceiro) ficam travados.

@@ -24,6 +24,12 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   divergente: { label: 'Divergente', className: 'bg-red-100 text-red-800' },
 }
 
+const FUNCAO_LABELS: Record<string, string> = {
+  pintor: 'Pintor',
+  ajudante: 'Ajudante',
+  ambos: 'Pintor + Ajudante',
+}
+
 export function TabelaLancamentos({
   entries: initialEntries,
   loading,
@@ -166,11 +172,11 @@ export function TabelaLancamentos({
               <select
                 value={filtroFuncao}
                 onChange={(e) => setFiltroFuncao(e.target.value)}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white capitalize focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Todas</option>
                 {funcoes.map((funcao) => (
-                  <option key={funcao} value={funcao} className="capitalize">{funcao}</option>
+                  <option key={funcao} value={funcao}>{FUNCAO_LABELS[funcao] ?? funcao}</option>
                 ))}
               </select>
             </div>
@@ -237,7 +243,7 @@ export function TabelaLancamentos({
                     </td>
                   )}
                   <td className="px-4 py-3">{formatDate(entry.data_producao)}</td>
-                  <td className="px-4 py-3 capitalize text-gray-500">{entry.funcao ?? '—'}</td>
+                  <td className="px-4 py-3 text-gray-500">{FUNCAO_LABELS[entry.funcao] ?? entry.funcao ?? '—'}</td>
                   <td className="px-4 py-3">{entry.marca}</td>
                   <td className="px-4 py-3">{entry.tamanho}</td>
                   <td className="px-4 py-3 text-right font-medium">{entry.quantidade.toLocaleString('pt-BR')}</td>

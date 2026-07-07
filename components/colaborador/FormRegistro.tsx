@@ -3,6 +3,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useEffect } from 'react'
 
 const TURNOS = [
   { value: 'unico',  label: 'Único',  desc: 'Mesmo parceiro o dia todo' },
@@ -15,10 +16,12 @@ const FUNCOES = [
   { value: 'ajudante', label: 'Ajudante', desc: 'Auxiliar' },
 ] as const
 
+const FUNCAO_AMBOS = { value: 'ambos', label: 'Pintor + Ajudante', desc: 'Sozinho, fiz as duas' } as const
+
 const schema = z.object({
   data_producao: z.string().min(1, 'Data é obrigatória'),
   turno: z.enum(['unico', 'manha', 'tarde']),
-  funcao: z.enum(['pintor', 'ajudante']),
+  funcao: z.enum(['pintor', 'ajudante', 'ambos']),
   marca: z.string().min(1, 'Marca é obrigatória'),
   tamanho: z.string().min(1, 'Tamanho é obrigatório'),
   cores: z.coerce.number().int().min(1, 'Mínimo 1 cor'),
@@ -30,6 +33,7 @@ type FormData = z.infer<typeof schema>
 
 interface FormRegistroProps {
   parceiros: { id: string; nome: string }[]
+  userId: string
   defaultFuncao?: 'pintor' | 'ajudante'
   onSubmit: (data: FormData) => Promise<void>
 }
@@ -48,21 +52,34 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 
 const inputClass = 'w-full min-w-0 appearance-none rounded-xl border border-black/[0.08] bg-brand-cream px-4 py-3 text-sm font-sans text-brand-dark placeholder-brand-dark/25 focus:outline-none focus:ring-2 focus:ring-brand-blue/25 focus:border-brand-blue/50 transition-all'
 
-export function FormRegistro({ parceiros, defaultFuncao = 'pintor', onSubmit }: FormRegistroProps) {
+export function FormRegistro({ parceiros, userId, defaultFuncao = 'pintor', onSubmit }: FormRegistroProps) {
   const today = new Date().toISOString().split('T')[0]
 
   const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting }, reset } =
     useForm<FormData>({
       resolver: zodResolver(schema),
-      defaultValues: { data_producao: today, turno: 'unico', funcao: defaultFuncao, cores: 1 },
+      defaultValues: { data_producao: today, turno: 'unico', funcao: defaultFuncao, parceiro_id: '', cores: 1 },
     })
 
   const turnoAtual = watch('turno')
   const funcaoAtual = watch('funcao')
+  const parceiroAtual = watch('parceiro_id')
+  const trabalhandoSozinho = parceiroAtual === userId
+
+  // "Pintor + Ajudante" só existe para lançamento solo. Se o colaborador
+  // trocar de parceiro depois de já ter marcado essa opção, volta para a
+  // função padrão em vez de manter uma combinação inválida.
+  useEffect(() => {
+    if (funcaoAtual === 'ambos' && !trabalhandoSozinho) {
+      setValue('funcao', defaultFuncao, { shouldValidate: true })
+    }
+  }, [trabalhandoSozinho, funcaoAtual, defaultFuncao, setValue])
+
+  const opcoesFuncao = trabalhandoSozinho ? [...FUNCOES, FUNCAO_AMBOS] : FUNCOES
 
   async function handleFormSubmit(data: FormData) {
     await onSubmit(data)
-    reset({ data_producao: today, turno: 'unico', funcao: defaultFuncao, cores: 1 })
+    reset({ data_producao: today, turno: 'unico', funcao: defaultFuncao, parceiro_id: '', cores: 1 })
   }
 
   return (
@@ -101,10 +118,20 @@ export function FormRegistro({ parceiros, defaultFuncao = 'pintor', onSubmit }: 
         <input type="hidden" {...register('turno')} />
       </Field>
 
-      {/* Seletor de função — botões segmentados */}
+      <Field label="Parceiro" error={errors.parceiro_id?.message}>
+        <select {...register('parceiro_id')} className={inputClass}>
+          <option value="">Selecione o parceiro</option>
+          {parceiros.map((p) => (
+            <option key={p.id} value={p.id}>{p.nome}</option>
+          ))}
+        </select>
+      </Field>
+
+      {/* Seletor de função — botões segmentados. "Pintor + Ajudante" só
+          aparece quando o parceiro selecionado é o próprio colaborador. */}
       <Field label="Função neste turno" error={errors.funcao?.message}>
-        <div className="grid grid-cols-2 gap-2">
-          {FUNCOES.map(({ value, label, desc }) => {
+        <div className={`grid gap-2 ${opcoesFuncao.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          {opcoesFuncao.map(({ value, label, desc }) => {
             const ativo = funcaoAtual === value
             return (
               <button
@@ -128,6 +155,11 @@ export function FormRegistro({ parceiros, defaultFuncao = 'pintor', onSubmit }: 
           })}
         </div>
         <input type="hidden" {...register('funcao')} />
+        {trabalhandoSozinho && (
+          <p className="text-[10px] font-sans text-brand-dark/35 leading-snug">
+            Fez as duas funções sozinho? Escolha &quot;Pintor + Ajudante&quot; e o pagamento das duas é calculado neste único lançamento.
+          </p>
+        )}
       </Field>
 
       <Field label="Marca" error={errors.marca?.message}>
@@ -146,15 +178,6 @@ export function FormRegistro({ parceiros, defaultFuncao = 'pintor', onSubmit }: 
           <input type="number" min={1} placeholder="0" {...register('quantidade')} className={inputClass} />
         </Field>
       </div>
-
-      <Field label="Parceiro" error={errors.parceiro_id?.message}>
-        <select {...register('parceiro_id')} className={inputClass}>
-          <option value="">Selecione o parceiro</option>
-          {parceiros.map((p) => (
-            <option key={p.id} value={p.id}>{p.nome}</option>
-          ))}
-        </select>
-      </Field>
 
       <button
         type="submit"
