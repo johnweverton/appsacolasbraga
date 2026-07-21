@@ -29,7 +29,7 @@ export default async function QuinzenaDetalhesPage({ params }: Props) {
   ] = await Promise.all([
     supabase
       .from('production_entries')
-      .select('*')
+      .select('*, users!colaborador_id(nome), parceiro:users!parceiro_id(nome)')
       .eq('quinzena_id', params.id)
       .order('data_producao', { ascending: false }),
     supabase.from('users').select('id, nome, funcao').in('funcao', ['pintor', 'ajudante']),
@@ -37,10 +37,16 @@ export default async function QuinzenaDetalhesPage({ params }: Props) {
     supabase.from('payouts').select('colaborador_id, valor_total').eq('quinzena_id', params.id),
   ])
 
+  const entriesComNome = (entries ?? []).map((e) => ({
+    ...(e as ProductionEntry),
+    nome_colaborador: (e as { users?: { nome: string } | null }).users?.nome ?? e.colaborador_id,
+    nome_parceiro: (e as { parceiro?: { nome: string } | null }).parceiro?.nome ?? '—',
+  }))
+
   // Colaboradores que ainda não têm payout nesta quinzena — inclui o caso de
   // quinzena já fechada com colaborador deixado pendente propositalmente.
   const resumoPendentes = resumoPorColaborador(
-    (entries ?? []) as ProductionEntry[],
+    entriesComNome,
     users ?? [],
     rates ?? [],
     payoutsExistentes ?? [],
@@ -95,8 +101,10 @@ export default async function QuinzenaDetalhesPage({ params }: Props) {
       )}
 
       <TabelaLancamentos
-        entries={(entries ?? []) as ProductionEntry[]}
+        entries={entriesComNome}
         readOnly={quinzena.status === 'fechada'}
+        mostrarColaborador
+        quinzenaId={params.id}
       />
     </div>
   )

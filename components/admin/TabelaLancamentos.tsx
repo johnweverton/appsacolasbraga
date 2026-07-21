@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import Link from 'next/link'
 import { Trash2 } from 'lucide-react'
 import type { ProductionEntry } from '@/types'
 import { formatDate } from '@/lib/format'
@@ -235,7 +236,18 @@ export function TabelaLancamentos({
               return (
                 <tr key={entry.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                   {mostrarColaborador && (
-                    <td className="px-4 py-3 font-medium text-gray-700">{entry.nome_colaborador ?? '—'}</td>
+                    <td className="px-4 py-3 font-medium text-gray-700">
+                      {entry.colaborador_id ? (
+                        <Link
+                          href={`/admin/colaboradores/${entry.colaborador_id}/historico`}
+                          className="hover:text-blue-600 hover:underline"
+                        >
+                          {entry.nome_colaborador ?? '—'}
+                        </Link>
+                      ) : (
+                        entry.nome_colaborador ?? '—'
+                      )}
+                    </td>
                   )}
                   {mostrarColaborador && (
                     <td className="px-4 py-3 text-gray-500">
@@ -251,8 +263,12 @@ export function TabelaLancamentos({
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${status.className}`}>
                       {status.label}
                     </span>
-                    {entry.status === 'divergente' && entry.observacao && (
-                      <p className="mt-1 max-w-[220px] text-[11px] leading-snug text-red-600">
+                    {entry.observacao && (
+                      <p
+                        className={`mt-1 max-w-[220px] text-[11px] leading-snug ${
+                          entry.status === 'divergente' ? 'text-red-600' : 'text-gray-500'
+                        }`}
+                      >
                         {entry.observacao}
                       </p>
                     )}

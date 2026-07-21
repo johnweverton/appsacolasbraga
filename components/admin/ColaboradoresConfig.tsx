@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { UserPlus, X, Pencil } from 'lucide-react'
+import { UserPlus, X, Pencil, History } from 'lucide-react'
 import type { User } from '@/types'
 
 const createSchema = z.object({
@@ -270,6 +271,13 @@ export function ColaboradoresConfig({ colaboradoresIniciais }: ColaboradoresConf
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-3">
+                      <Link
+                        href={`/admin/colaboradores/${c.id}/historico`}
+                        className="text-xs font-sans font-semibold text-gray-500 hover:text-brand-blue transition-colors flex items-center gap-1"
+                      >
+                        <History size={11} />
+                        Histórico
+                      </Link>
                       <button
                         onClick={() => abrirEdicao(c)}
                         className="text-xs font-sans font-semibold text-brand-blue hover:text-brand-blue/70 transition-colors flex items-center gap-1"
