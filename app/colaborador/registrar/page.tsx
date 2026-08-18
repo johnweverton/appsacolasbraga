@@ -47,18 +47,20 @@ export default function RegistrarProducao() {
     quantidade: number
     parceiro_id: string
   }) {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user || !quinzena) throw new Error('Sessão ou quinzena inválida')
+    if (!quinzena) throw new Error('Sessão ou quinzena inválida')
 
-    const { error } = await supabase.from('production_entries').insert({
-      quinzena_id: quinzena.id,
-      colaborador_id: user.id,
-      ...data,
-      status: 'pendente',
+    // Passa pela API (não insert direto) para acionar a conferência automática
+    // com o lançamento espelho do parceiro — ver lib/conferir-par.ts.
+    const res = await fetch('/api/producao', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quinzena_id: quinzena.id, ...data }),
     })
 
-    if (error) throw error
+    if (!res.ok) {
+      const json = await res.json().catch(() => null)
+      throw new Error(typeof json?.error === 'string' ? json.error : 'Erro ao registrar produção')
+    }
 
     showToast(`${data.quantidade} unidades registradas!`, 'success')
     metricas.refresh()
