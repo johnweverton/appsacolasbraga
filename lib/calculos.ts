@@ -6,14 +6,9 @@ export interface PayoutCalculo {
 }
 
 /**
- * Calcula o valor de produção aplicando a regra de benefício de faixa:
- * 500–999 unidades → paga como 1 milheiro cheio (valorPorMilheiro).
- * Fora da faixa → proporcional (quantidade / 1000 × valorPorMilheiro).
+ * Calcula o valor de produção proporcional ao milheiro: quantidade / 1000 × valorPorMilheiro.
  */
 export function calcularValorProducao(quantidade: number, valorPorMilheiro: number): number {
-  if (quantidade >= 500 && quantidade < 1000) {
-    return valorPorMilheiro
-  }
   return (quantidade / 1000) * valorPorMilheiro
 }
 
@@ -30,53 +25,32 @@ export function calcularPayouts(
   //
   // funcao = 'ambos' representa um lançamento solo onde o colaborador fez
   // pintor E ajudante no mesmo trabalho: credita a mesma quantidade nos dois
-  // grupos, pagando as duas taxas sobre as mesmas unidades. Esse crédito fica
-  // separado dos lançamentos diretos (grupos) porque, sendo a mesma produção
-  // física contada duas vezes, não é elegível ao benefício de faixa — senão o
-  // mesmo lote pagaria o bônus 500-999 em dobro. Lançamentos diretos de uma
-  // única função continuam elegíveis ao benefício normalmente.
+  // grupos, pagando as duas taxas sobre as mesmas unidades.
   const grupos = new Map<string, Map<string, number>>()
-  const gruposAmbos = new Map<string, Map<string, number>>()
   confirmados.forEach((e) => {
     const unidades = e.quantidade * e.cores
+    if (!grupos.has(e.colaborador_id)) grupos.set(e.colaborador_id, new Map())
+    const byFuncao = grupos.get(e.colaborador_id)!
     if (e.funcao === 'ambos') {
-      if (!gruposAmbos.has(e.colaborador_id)) gruposAmbos.set(e.colaborador_id, new Map())
-      const byFuncao = gruposAmbos.get(e.colaborador_id)!
       byFuncao.set('pintor', (byFuncao.get('pintor') ?? 0) + unidades)
       byFuncao.set('ajudante', (byFuncao.get('ajudante') ?? 0) + unidades)
     } else {
-      if (!grupos.has(e.colaborador_id)) grupos.set(e.colaborador_id, new Map())
-      const byFuncao = grupos.get(e.colaborador_id)!
       byFuncao.set(e.funcao, (byFuncao.get(e.funcao) ?? 0) + unidades)
     }
   })
 
-  const colaboradorIds = new Set<string>()
-  grupos.forEach((_, id) => colaboradorIds.add(id))
-  gruposAmbos.forEach((_, id) => colaboradorIds.add(id))
-
   const payouts: PayoutCalculo[] = []
-  colaboradorIds.forEach((colaborador_id) => {
+  grupos.forEach((byFuncao, colaborador_id) => {
     let total_unidades = 0
     let valor_total = 0
     let funcaoUnica: string | null = null
     let misto = false
 
-    grupos.get(colaborador_id)?.forEach((quantidade, funcao) => {
+    byFuncao.forEach((quantidade, funcao) => {
       const rate = rates.find((r) => r.funcao === funcao)
       if (!rate) return
       total_unidades += quantidade
       valor_total += calcularValorProducao(quantidade, rate.valor_unitario)
-      if (funcaoUnica === null) funcaoUnica = funcao
-      else if (funcaoUnica !== funcao) misto = true
-    })
-
-    gruposAmbos.get(colaborador_id)?.forEach((quantidade, funcao) => {
-      const rate = rates.find((r) => r.funcao === funcao)
-      if (!rate) return
-      total_unidades += quantidade
-      // Sempre proporcional: crédito derivado de 'ambos', sem benefício de faixa
-      valor_total += (quantidade / 1000) * rate.valor_unitario
       if (funcaoUnica === null) funcaoUnica = funcao
       else if (funcaoUnica !== funcao) misto = true
     })
