@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { FormNovaQuinzena } from '@/components/admin/FormNovaQuinzena'
 import { BotaoFecharQuinzena } from '@/components/admin/BotaoFecharQuinzena'
 import { formatDate } from '@/lib/format'
+import { BotaoReabrirQuinzena } from '@/components/admin/BotaoReabrirQuinzena'
+import { avaliarReabertura } from '@/lib/reabrir-quinzena'
 
 export default async function QuinzenaPage() {
   const supabase = createClient()
@@ -25,17 +27,38 @@ export default async function QuinzenaPage() {
   // Colaboradores com lançamentos na quinzena aberta que ainda não foram
   // fechados individualmente — candidatos a "deixar pendente" ao fechar.
   let colaboradoresPendentes: { id: string; nome: string }[] = []
+  let lancamentosAtiva = 0
   if (quinzenaAtiva) {
     const [{ data: entries }, { data: users }, { data: payouts }] = await Promise.all([
       supabase.from('production_entries').select('colaborador_id').eq('quinzena_id', quinzenaAtiva.id),
       supabase.from('users').select('id, nome').in('funcao', ['pintor', 'ajudante']),
       supabase.from('payouts').select('colaborador_id').eq('quinzena_id', quinzenaAtiva.id),
     ])
+    lancamentosAtiva = (entries ?? []).length
     const idsComLancamento = new Set((entries ?? []).map((e) => e.colaborador_id))
     const idsJaFechados = new Set((payouts ?? []).map((p) => p.colaborador_id))
     colaboradoresPendentes = (users ?? [])
       .filter((u) => idsComLancamento.has(u.id) && !idsJaFechados.has(u.id))
       .map((u) => ({ id: u.id, nome: u.nome }))
+  }
+
+  // Botão "Reabrir" só aparece na fechada mais recente, quando as regras
+  // permitem (nenhum pagamento pago e quinzena atual vazia). A API revalida.
+  const ultimaFechada = historico?.[0] ?? null
+  let podeReabrir = false
+  if (ultimaFechada) {
+    const { data: payoutsUltima } = await supabase
+      .from('payouts')
+      .select('status, comprovante_url, recibo_url')
+      .eq('quinzena_id', ultimaFechada.id)
+    podeReabrir = avaliarReabertura({
+      alvo: ultimaFechada,
+      maisRecenteFechada: ultimaFechada,
+      payoutsAlvo: payoutsUltima ?? [],
+      aberta: quinzenaAtiva ?? null,
+      lancamentosAberta: lancamentosAtiva,
+      payoutsAberta: 0,
+    }).ok
   }
 
   return (
@@ -65,16 +88,22 @@ export default async function QuinzenaPage() {
           <h3 className="text-base font-medium text-gray-700 mb-3">Histórico</h3>
           <ul className="space-y-2">
             {historico!.map((q) => (
-              <li key={q.id}>
+              <li key={q.id} className="flex items-center gap-2">
                 <Link
                   href={`/admin/quinzena/${q.id}`}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 hover:bg-gray-50 transition-colors"
+                  className="flex-1 flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 hover:bg-gray-50 transition-colors"
                 >
                   <span className="text-sm text-gray-700">
                     {formatDate(q.data_inicio)} – {formatDate(q.data_fim)}
                   </span>
                   <span className="text-xs text-gray-400">Ver detalhes →</span>
                 </Link>
+                {podeReabrir && q.id === ultimaFechada?.id && (
+                  <BotaoReabrirQuinzena
+                    quinzenaId={q.id}
+                    periodo={`${formatDate(q.data_inicio)} – ${formatDate(q.data_fim)}`}
+                  />
+                )}
               </li>
             ))}
           </ul>

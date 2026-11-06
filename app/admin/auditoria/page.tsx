@@ -6,6 +6,7 @@ import { formatDate } from '@/lib/format'
 
 const ACAO_LABEL: Record<string, { label: string; cor: string }> = {
   fechou_quinzena:    { label: 'Fechou quinzena',    cor: 'bg-purple-100 text-purple-700' },
+  reabriu_quinzena:   { label: 'Reabriu quinzena',   cor: 'bg-amber-100 text-amber-700'  },
   fechou_colaborador: { label: 'Fechou colaborador', cor: 'bg-indigo-100 text-indigo-700' },
   marcou_pago:        { label: 'Marcou pago',         cor: 'bg-green-100 text-green-700'  },
   editou_lancamento:  { label: 'Editou lançamento',  cor: 'bg-amber-100 text-amber-700'  },

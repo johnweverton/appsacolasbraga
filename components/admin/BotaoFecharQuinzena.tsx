@@ -65,7 +65,7 @@ export function BotaoFecharQuinzena({ colaboradoresPendentes = [] }: BotaoFechar
       {mostrarModal && (
         <ModalConfirmacao
           titulo="Fechar quinzena"
-          descricao="Esta ação calculará os pagamentos e encerrará a quinzena. Não pode ser desfeita."
+          descricao="Esta ação calculará os pagamentos e encerrará a quinzena. Só dá para reabrir enquanto nenhum pagamento for marcado como pago e ninguém lançar na quinzena nova."
           textoBotaoConfirmar="Fechar Quinzena"
           onConfirmar={handleFechar}
           onCancelar={() => setMostrarModal(false)}
