@@ -5,6 +5,7 @@ import { TabelaLancamentos } from '@/components/admin/TabelaLancamentos'
 import { BotaoFecharColaborador } from '@/components/admin/BotaoFecharColaborador'
 import { BotaoAuditar } from '@/components/admin/BotaoAuditar'
 import { resumoPorColaborador, formatarMoeda } from '@/lib/calculos'
+import { conferirDuplas, colaboradoresComDuplaDivergente } from '@/lib/conferencia-dupla'
 import type { ProductionEntry } from '@/types'
 
 export default async function LancamentosPage() {
@@ -57,6 +58,9 @@ export default async function LancamentosPage() {
     payoutsExistentes ?? [],
   )
 
+  // Conferência por dupla/dia: quem tem dia em que o total anotado não bate com o do parceiro
+  const comDuplaDivergente = colaboradoresComDuplaDivergente(conferirDuplas(entriesComNome))
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -102,6 +106,13 @@ export default async function LancamentosPage() {
                     </span>
                   </div>
                 </div>
+
+                {!c.jaFechado && comDuplaDivergente.has(c.id) && (
+                  <p className="text-xs rounded-lg bg-red-50 text-red-700 px-2.5 py-1.5">
+                    ⚠️ Total anotado com o parceiro não bate em algum dia. Veja em
+                    {' '}<strong>Conferência por dupla</strong> antes de fechar.
+                  </p>
+                )}
 
                 {!c.jaFechado && !c.temDivergencia && c.unidades > 0 && (
                   <BotaoFecharColaborador

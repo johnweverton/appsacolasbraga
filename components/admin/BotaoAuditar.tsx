@@ -7,7 +7,7 @@ import { Toast } from '@/components/ui/Toast'
 import { useToast } from '@/hooks/useToast'
 
 interface Suspeita {
-  tipo: 'divergencia' | 'aviso'
+  tipo: 'divergencia' | 'aviso' | 'dupla'
   data: string
   marca: string
   tamanho: string
@@ -77,6 +77,9 @@ export function BotaoAuditar({ quinzenaId }: { quinzenaId: string }) {
                 <span className="font-medium">{s.colaboradores.join(' × ')}</span>
                 {' — '}
                 <span className="text-red-600">{s.descricao}</span>
+                {s.tipo === 'dupla' && (
+                  <span className="ml-1 text-[11px] uppercase tracking-wide text-red-500">(total do dia)</span>
+                )}
                 {s.tipo === 'aviso' && (
                   <span className="ml-1 text-[11px] uppercase tracking-wide text-amber-600">(aviso)</span>
                 )}

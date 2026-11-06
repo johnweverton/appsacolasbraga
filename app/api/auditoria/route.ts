@@ -9,6 +9,7 @@ import {
   descreverMotivos,
   type PerfilColaborador,
 } from '@/lib/auditoria'
+import { conferirDuplas, descreverConferencia } from '@/lib/conferencia-dupla'
 
 interface EntryScan {
   id: string
@@ -19,11 +20,12 @@ interface EntryScan {
   tamanho: string
   funcao: string
   quantidade: number
+  cores: number
   status: string
 }
 
 export interface SuspeitaAuditoria {
-  tipo: 'divergencia' | 'aviso'
+  tipo: 'divergencia' | 'aviso' | 'dupla'
   data: string
   marca: string
   tamanho: string
@@ -66,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     const { data: entriesRaw } = await db
       .from('production_entries')
-      .select('id, colaborador_id, parceiro_id, data_producao, marca, tamanho, funcao, quantidade, status')
+      .select('id, colaborador_id, parceiro_id, data_producao, marca, tamanho, funcao, quantidade, cores, status')
       .eq('quinzena_id', quinzenaId)
 
     const entries = (entriesRaw ?? []) as EntryScan[]
@@ -169,6 +171,23 @@ export async function POST(request: NextRequest) {
         colaboradores: [nomes[e.colaborador_id] ?? '—'],
         descricao: `${nomes[e.colaborador_id] ?? 'Colaborador'} marcou ${suspeita.registrado}, mas o perfil é ${suspeita.esperado}. Aguardando o parceiro para confirmar.`,
         motivos: ['funcao'],
+        nova: false,
+      })
+    }
+
+    // Conferência por dupla e por dia: compara o total que cada lado anotou
+    // (pega erros de digitação que o casamento por marca/tamanho não pega).
+    // Apenas relatório — não altera status.
+    for (const c of conferirDuplas(entries)) {
+      if (c.status !== 'divergente') continue
+      suspeitas.push({
+        tipo: 'dupla',
+        data: c.data,
+        marca: '',
+        tamanho: '',
+        colaboradores: [nomes[c.ladoA.colaborador_id] ?? '—', nomes[c.ladoB.colaborador_id] ?? '—'],
+        descricao: `Total do dia ${c.data.split('-').reverse().join('/')}: ${descreverConferencia(c, nomes)}`,
+        motivos: c.conflitoFuncao ? ['quantidade', 'funcao'] : ['quantidade'],
         nova: false,
       })
     }
